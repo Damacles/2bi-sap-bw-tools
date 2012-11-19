@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-16"?>
+<nugget name="ZBI_ACTIVATE_PROCESS_CHAINS">
+ <PROG NAME="ZBI_ACTIVATE_PROCESS_CHAINS" VARCL="X" SUBC="1" CNAM="BE92304" CDAT="20110122" UNAM="BE92304" UDAT="20110123" VERN="000012" RMAND="100" RLOAD="E" FIXPT="X" SDATE="20110123" STIME="000322" IDATE="20110123" ITIME="000322" UCCHECK="X">
+  <textPool>
+   <language SPRAS="E">
+    <textElement ID="R" ENTRY="Activate inactive process chains" LENGTH="32 "/>
+   </language>
+  </textPool>
+  <source>*&amp;---------------------------------------------------------------------*
+*&amp; Report  ZBI_ACTIVATE_PROCESS_CHAINS
+*&amp;
+*&amp;---------------------------------------------------------------------*
+*&amp;
+*&amp;
+*&amp;---------------------------------------------------------------------*
+
+REPORT  zbi_activate_process_chains.
+
+
+DATA: lt_chainattr TYPE rspc_t_chainattr.
+DATA: lt_chainattr2 TYPE rspc_t_chainattr.
+DATA: ls_chainattr LIKE LINE OF lt_chainattr.
+
+DATA: lt_conflicts TYPE rspc_t_conflicts.
+DATA: ls_conflicts LIKE LINE OF lt_conflicts.
+
+DATA: output TYPE string.
+DATA: line_prefix TYPE string.
+
+SELECT-OPTIONS s_rspc FOR ls_chainattr-chain_id.
+
+&quot; Get list of active chains
+CALL FUNCTION &apos;RSPC_GET_CHAIN&apos;
+ EXPORTING
+*   I_CHAIN               =
+*   I_TYPE                =
+*   I_VARIANT             =
+*   I_T_VARIANT           =
+   i_objvers             = &apos;A&apos;
+*   I_WITH_DIALOG         = &apos; &apos;
+*   I_ONE_NO_DIALOG       = &apos; &apos;
+*   I_LANGU               = SY-LANGU
+*   I_FILTER_CLIENT       = &apos; &apos;
+ IMPORTING
+*   E_T_CHAIN_IDS         =
+*   E_T_CHAINS            =
+*   E_T_CHAINATTR         =
+   e_t_chainattr            = lt_chainattr
+*   E_NEW                 =
+ EXCEPTIONS
+   aborted_by_user       = 1
+   OTHERS                = 2
+          .
+IF sy-subrc &lt;&gt; 0.
+  MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
+          WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
+ENDIF.
+
+&quot; Get list of modified chains
+CALL FUNCTION &apos;RSPC_GET_CHAIN&apos;
+ EXPORTING
+*   I_CHAIN               =
+*   I_TYPE                =
+*   I_VARIANT             =
+*   I_T_VARIANT           =
+   i_objvers             = &apos;M&apos;
+*   I_WITH_DIALOG         = &apos; &apos;
+*   I_ONE_NO_DIALOG       = &apos; &apos;
+*   I_LANGU               = SY-LANGU
+*   I_FILTER_CLIENT       = &apos; &apos;
+ IMPORTING
+*   E_T_CHAIN_IDS         =
+*   E_T_CHAINS            =
+*   E_T_CHAINATTR         =
+   e_t_chainattr            = lt_chainattr2
+*   E_NEW                 =
+ EXCEPTIONS
+   aborted_by_user       = 1
+   OTHERS                = 2.
+IF sy-subrc &lt;&gt; 0.
+  MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
+          WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
+ENDIF.
+
+APPEND LINES OF lt_chainattr2 TO lt_chainattr.
+SORT lt_chainattr BY chain_id timestmp DESCENDING objvers.
+DELETE ADJACENT DUPLICATES FROM lt_chainattr COMPARING chain_id.
+DELETE lt_chainattr WHERE objvers = &apos;A&apos;.
+REFRESH lt_chainattr2.
+LOOP AT lt_chainattr INTO ls_chainattr
+  WHERE chain_id IN s_rspc.
+  APPEND ls_chainattr TO lt_chainattr2.
+ENDLOOP.
+lt_chainattr = lt_chainattr2.
+
+IF lt_chainattr IS INITIAL.
+  WRITE &apos;All process chains are active. Exiting&apos;.
+ELSE.
+  LOOP AT lt_chainattr INTO ls_chainattr.
+    REFRESH lt_conflicts.
+    CALL FUNCTION &apos;RSPC_CHAIN_ACTIVATE_REMOTE&apos;
+      EXPORTING
+        i_chain              = ls_chainattr-chain_id
+*     I_PERIODIC           = &apos; &apos;
+*     I_NO_AUTHORITY       = &apos; &apos;
+       i_noplan             = &apos;X&apos;
+     IMPORTING
+       e_t_conflicts        = lt_conflicts
+              .
+    CONCATENATE &apos;Activating Process Chain:&apos; ls_chainattr-chain_id INTO output.
+    WRITE output.
+    LOOP AT lt_conflicts TRANSPORTING NO FIELDS
+       WHERE msgty &lt;&gt; &apos;I&apos; AND msgty &lt;&gt; &apos;W&apos;.
+      EXIT.
+    ENDLOOP.
+
+
+    IF ( sy-subrc &lt;&gt; 0 ) OR ( lt_conflicts IS INITIAL ).
+      WRITE &apos;=&gt; Success&apos;.
+      WRITE /.
+    ELSE.
+      WRITE &apos;=&gt; Failed&apos;.
+      WRITE /.
+    ENDIF.
+
+    LOOP AT lt_conflicts INTO ls_conflicts.
+      WRITE ls_conflicts.
+      WRITE /.
+    ENDLOOP.
+  ENDLOOP.
+ENDIF.</source>
+ </PROG>
+</nugget>
