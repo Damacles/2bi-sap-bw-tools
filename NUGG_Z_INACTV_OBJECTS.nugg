@@ -1,0 +1,498 @@
+<?xml version="1.0" encoding="utf-16"?>
+<nugget name="Z_INACTV_OBJECTS">
+ <PROG NAME="Z_INACTV_OBJECTS" VARCL="X" SUBC="1" CNAM="BE92325" CDAT="20110329" UNAM="BE92304" UDAT="20110330" VERN="000011" RSTAT="T" RMAND="100" RLOAD="E" FIXPT="X" SDATE="20110330" STIME="112957" IDATE="20110330" ITIME="112957" UCCHECK="X">
+  <textPool>
+   <language SPRAS="E">
+    <textElement ID="I" KEY="001" ENTRY="Use Checkboxes to ReadOut Inactive Objects" LENGTH="42 "/>
+    <textElement ID="I" KEY="002" ENTRY="Select All Categories" LENGTH="21 "/>
+    <textElement ID="I" KEY="052" ENTRY="Transformation ID" LENGTH="17 "/>
+    <textElement ID="I" KEY="053" ENTRY="Source" LENGTH="6 "/>
+    <textElement ID="I" KEY="054" ENTRY="Target" LENGTH="6 "/>
+    <textElement ID="I" KEY="061" ENTRY="DTP ID" LENGTH="17 "/>
+    <textElement ID="I" KEY="062" ENTRY="DTP Description" LENGTH="15 "/>
+    <textElement ID="I" KEY="071" ENTRY="Process Chain ID" LENGTH="16 "/>
+    <textElement ID="I" KEY="072" ENTRY="Process Chain Descr" LENGTH="19 "/>
+    <textElement ID="R" ENTRY="Program to display inactive objects in system" LENGTH="45 "/>
+    <textElement ID="S" KEY="X_C1" ENTRY="        Multiprovider" LENGTH="21 "/>
+    <textElement ID="S" KEY="X_C2" ENTRY="        Cube" LENGTH="12 "/>
+    <textElement ID="S" KEY="X_C3" ENTRY="        DSO" LENGTH="11 "/>
+    <textElement ID="S" KEY="X_C4" ENTRY="        Info Object" LENGTH="19 "/>
+    <textElement ID="S" KEY="X_C5" ENTRY="        Transformation" LENGTH="22 "/>
+    <textElement ID="S" KEY="X_C6" ENTRY="        DTP" LENGTH="11 "/>
+    <textElement ID="S" KEY="X_C7" ENTRY="        Process Chain" LENGTH="21 "/>
+    <textElement ID="S" KEY="X_C8" ENTRY="        Aggregation Level" LENGTH="25 "/>
+    <textElement ID="S" KEY="X_C9" ENTRY="        Data Source" LENGTH="19 "/>
+    <textElement ID="S" KEY="X_CALL" ENTRY="        Select All Categories" LENGTH="29 "/>
+   </language>
+  </textPool>
+  <source>*&amp;---------------------------------------------------------------------*
+*&amp; Report  Z_INACTV_OBJECTS
+*&amp;
+*&amp;---------------------------------------------------------------------*
+*&amp;
+*&amp;
+*&amp;---------------------------------------------------------------------*
+
+REPORT  z_inactv_objects LINE-SIZE 200.
+
+DATA: checkbox_mark TYPE xfeld.
+SELECTION-SCREEN BEGIN OF BLOCK b1 WITH FRAME TITLE text-001.
+SELECTION-SCREEN BEGIN OF LINE.
+PARAMETERS: x_call AS CHECKBOX USER-COMMAND com1.
+SELECTION-SCREEN COMMENT (25) text-002 FOR FIELD x_call.
+SELECTION-SCREEN END OF LINE. SELECTION-SCREEN SKIP.
+
+PARAMETERS: x_c1 AS CHECKBOX USER-COMMAND com2, &quot; MultiProvider
+x_c2 AS CHECKBOX USER-COMMAND com2, &quot; Cube
+x_c3 AS CHECKBOX USER-COMMAND com2, &quot; DSO
+x_c4 AS CHECKBOX USER-COMMAND com2, &quot; InfoObject
+x_c5 AS CHECKBOX USER-COMMAND com2, &quot; Transformation
+x_c6 AS CHECKBOX USER-COMMAND com2, &quot; DTP
+x_c7 AS CHECKBOX USER-COMMAND com2, &quot; Processchain
+x_c8 AS CHECKBOX USER-COMMAND com2, &quot; Aggregation Level
+x_c9 AS CHECKBOX USER-COMMAND com2. &quot; DataSource
+SELECTION-SCREEN END OF BLOCK b1.
+
+DATA: l_lines TYPE i.
+
+AT SELECTION-SCREEN ON x_call.
+  PERFORM at_call.
+
+AT SELECTION-SCREEN OUTPUT.
+  PERFORM at_sel_scr_output.
+
+START-OF-SELECTION.
+* Get Inactive Multiproviders
+  PERFORM get_inactiv_multipro.
+* Get Inactive Cubes
+  PERFORM get_inactiv_cube.
+* Get Inactive DataStore Objects
+  PERFORM get_inactiv_dso.
+* Get Inactive InfoObjects
+  PERFORM get_inactiv_iobj.
+
+* Get Inactive Transformations
+  PERFORM get_inactiv_transf.
+*  Get Inactive DTPs
+  PERFORM get_inactiv_dtp.
+* Get Inactive Process Chains
+  PERFORM get_inactiv_pchain.
+** Get Inactive Aggregation Level
+**  PERFORM get_inactiv_aggrlvl.
+* Get Inactive DataSources
+  PERFORM get_inactiv_dtasrc.
+*&amp;---------------------------------------------------------------------*
+*&amp;      Form  GET_INACTIV_MULTIPRO
+*&amp;---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  --&gt;  p1        text
+*  &lt;--  p2        text
+*----------------------------------------------------------------------*
+FORM get_inactiv_multipro .
+  TYPES: BEGIN OF ty_mltpro,
+        infocube TYPE rsinfocube,
+        END OF ty_mltpro.
+
+  DATA: lt_mltpro TYPE SORTED TABLE OF ty_mltpro WITH UNIQUE KEY infocube,
+        la_mltpro TYPE ty_mltpro.
+  CHECK x_c1 IS NOT INITIAL.
+  SELECT infocube FROM rsdcube
+    INTO TABLE lt_mltpro
+    WHERE objvers = &apos;M&apos; AND objstat = &apos;INA&apos; AND cubetype = &apos;M&apos;.
+  IF sy-subrc = 0.
+    DESCRIBE TABLE lt_mltpro LINES l_lines.
+    FORMAT COLOR COL_NEGATIVE.
+    WRITE: l_lines, &apos;Inactive Multiproviders found&apos;, /. FORMAT COLOR OFF.
+    LOOP AT lt_mltpro INTO la_mltpro.
+      WRITE:/ la_mltpro-infocube.
+    ENDLOOP.
+  ELSE.
+    FORMAT COLOR COL_POSITIVE.
+    WRITE: &apos;No Inactive Multiproviders found&apos;. FORMAT COLOR OFF.
+  ENDIF.
+ENDFORM.                    &quot; GET_INACTIV_MULTIPRO
+*&amp;---------------------------------------------------------------------*
+*&amp;      Form  GET_INACTIV_CUBE
+*&amp;---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  --&gt;  p1        text
+*  &lt;--  p2        text
+*----------------------------------------------------------------------*
+FORM get_inactiv_cube .
+  TYPES: BEGIN OF ty_cube,
+     infocube TYPE rsinfocube,
+    END OF ty_cube.
+  DATA: lt_cube TYPE SORTED TABLE OF ty_cube WITH UNIQUE KEY infocube,
+        la_cube TYPE ty_cube.
+  CHECK x_c2 IS NOT INITIAL.
+  SELECT infocube FROM rsdcube INTO TABLE lt_cube WHERE objvers = &apos;M&apos; AND objstat = &apos;INA&apos; AND cubetype NE &apos;M&apos;.
+  IF sy-subrc = 0.
+    DESCRIBE TABLE lt_cube LINES l_lines. FORMAT COLOR COL_NEGATIVE. WRITE:/ l_lines, &apos;Inactive Standard Cubes found&apos;, /.
+    FORMAT COLOR OFF.
+    LOOP AT lt_cube INTO la_cube. WRITE:/ la_cube-infocube. ENDLOOP.
+  ELSE.
+    FORMAT COLOR COL_POSITIVE. WRITE:/ &apos;No Inactive Standard Cubes found&apos;. FORMAT COLOR OFF.
+  ENDIF.
+
+ENDFORM.                    &quot; GET_INACTIV_CUBE
+*&amp;---------------------------------------------------------------------*
+*&amp;      Form  GET_INACTIV_DSO
+*&amp;---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  --&gt;  p1        text
+*  &lt;--  p2        text
+*----------------------------------------------------------------------*
+FORM get_inactiv_dso .
+  TYPES: BEGIN OF ty_odso,
+    dso TYPE rsdodsobject,
+    END OF ty_odso.
+  DATA: lt_odso TYPE SORTED TABLE OF ty_odso WITH UNIQUE KEY dso,
+        la_odso TYPE ty_odso,
+        lt_rsdodso TYPE TABLE OF ty_odso.
+  CHECK x_c3 IS NOT INITIAL.
+  SELECT odsobject FROM rsdodso INTO TABLE
+lt_rsdodso WHERE objvers = &apos;M&apos;.
+  IF sy-subrc = 0.
+    SELECT odsobject FROM rsdodsoloc
+      INTO TABLE lt_odso
+      FOR ALL ENTRIES IN lt_rsdodso
+      WHERE odsobject = lt_rsdodso-dso AND objstat = &apos;INA&apos;.
+    IF sy-subrc = 0.
+      DESCRIBE TABLE lt_odso LINES l_lines. FORMAT COLOR
+COL_NEGATIVE.
+      WRITE:/ l_lines, &apos;Inactive DSOs found&apos;, /.
+      FORMAT COLOR OFF.
+      LOOP AT lt_odso INTO la_odso. WRITE:/ la_odso-dso. ENDLOOP.
+    ELSE.
+      FORMAT COLOR COL_POSITIVE. WRITE:/ &apos;No Inactive DSOs found&apos;. FORMAT COLOR OFF.
+    ENDIF.
+  ENDIF.
+ENDFORM.                    &quot; GET_INACTIV_DSO
+*&amp;---------------------------------------------------------------------*
+*&amp;      Form  GET_INACTIV_IOBJ
+*&amp;---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  --&gt;  p1        text
+*  &lt;--  p2        text
+*----------------------------------------------------------------------*
+FORM get_inactiv_iobj .
+  TYPES: BEGIN OF ty_iobj,
+    iobjnm TYPE rsdiobjnm,
+    END OF ty_iobj.
+  DATA: lt_iobj TYPE SORTED TABLE OF ty_iobj WITH UNIQUE KEY iobjnm,
+        la_iobj TYPE ty_iobj.
+  CHECK x_c4 IS NOT INITIAL.
+  SELECT iobjnm FROM rsdiobj
+    INTO TABLE lt_iobj WHERE objvers = &apos;M&apos;
+     AND objstat = &apos;INA&apos;.
+  IF sy-subrc = 0.
+    DESCRIBE TABLE lt_iobj LINES l_lines.
+    FORMAT COLOR COL_NEGATIVE. WRITE:/ l_lines, &apos;Inactive InfoObjects found&apos;, /. FORMAT COLOR OFF.
+    LOOP AT lt_iobj INTO la_iobj.
+      WRITE:/ la_iobj-iobjnm.
+    ENDLOOP.
+  ELSE.
+    FORMAT COLOR
+COL_POSITIVE.
+    WRITE:/ &apos;No Inactive InfoObjects found&apos;. FORMAT COLOR OFF.
+  ENDIF.
+ENDFORM.                    &quot; GET_INACTIV_IOBJ
+*&amp;---------------------------------------------------------------------*
+*&amp;      Form  GET_INACTIV_TRANSF
+*&amp;---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  --&gt;  p1        text
+*  &lt;--  p2        text
+*----------------------------------------------------------------------*
+FORM get_inactiv_transf .
+  TYPES: BEGIN OF ty_rstran,
+     tranid TYPE rstranid,
+    sourcename TYPE sobj_name,
+    targetname TYPE sobj_name,
+    END OF ty_rstran,
+    BEGIN OF ty_rstrant,
+      tranid TYPE rstranid,
+      txtlg TYPE rstxtlg,
+      END OF ty_rstrant.
+  DATA: lt_rstran TYPE TABLE OF ty_rstran,
+        la_rstran TYPE ty_rstran,
+        lt_rstrant TYPE HASHED TABLE OF ty_rstrant WITH UNIQUE KEY tranid,
+        la_rstrant TYPE ty_rstrant.
+  CHECK x_c5 IS NOT INITIAL.
+  SELECT tranid sourcename targetname
+    FROM rstran INTO TABLE lt_rstran
+    WHERE objvers = &apos;M&apos;
+    AND objstat = &apos;INA&apos;.
+
+  IF sy-subrc = 0.
+    SELECT tranid txtlg FROM rstrant
+      INTO TABLE lt_rstrant
+      FOR ALL ENTRIES IN lt_rstran
+      WHERE langu = &apos;E&apos;
+      AND tranid = lt_rstran-tranid
+      AND objvers = &apos;M&apos;.
+    DESCRIBE TABLE lt_rstran LINES l_lines.
+    SORT lt_rstran BY sourcename.
+    FORMAT COLOR COL_NEGATIVE.
+    WRITE:/ l_lines, &apos;Inactive Transformations found&apos;, /. FORMAT COLOR COL_HEADING.
+    WRITE: text-053, 43 text-054, 72 text-052. FORMAT COLOR OFF.
+    LOOP AT lt_rstran INTO la_rstran.
+      READ TABLE lt_rstrant INTO la_rstrant WITH KEY tranid = la_rstran-tranid.
+      WRITE:/ la_rstran-sourcename UNDER text-053,
+              la_rstran-targetname UNDER text-054,
+              la_rstran-tranid UNDER text-052.
+      CLEAR: la_rstrant.
+    ENDLOOP.
+  ELSE.
+    FORMAT COLOR COL_POSITIVE. WRITE:/ &apos;No Inactive Transformations found&apos;. FORMAT COLOR OFF.
+  ENDIF.
+ENDFORM.                    &quot; GET_INACTIV_TRANSF
+*&amp;---------------------------------------------------------------------*
+*&amp;      Form  GET_INACTIV_DTP
+*&amp;---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  --&gt;  p1        text
+*  &lt;--  p2        text
+*----------------------------------------------------------------------*
+FORM get_inactiv_dtp .
+  TYPES: BEGIN OF ty_dtp,
+    dtp TYPE rsbkdtpnm,
+    objvers TYPE rsobjvers,
+    src TYPE rsbksrcnm,
+    tgt TYPE rsbktgtnm,
+    text TYPE symsgv,
+    END OF ty_dtp.
+  DATA: lt_dtp TYPE TABLE OF ty_dtp,
+        la_dtp TYPE ty_dtp, lt_inadtp TYPE TABLE OF ty_dtp,
+        la_inadtp TYPE ty_dtp,
+        lr_dtp TYPE REF TO cl_rsbk_dtp,
+        l_text TYPE symsgv,
+        lv_active TYPE c.
+
+  CHECK x_c6 IS NOT INITIAL.
+  SELECT dtp objvers src tgt
+    FROM rsbkdtp INTO TABLE lt_dtp
+    WHERE objvers IN (&apos;M&apos;, &apos;A&apos;).
+  IF lt_dtp IS NOT INITIAL.
+    SORT lt_dtp BY dtp ASCENDING objvers DESCENDING.
+    DELETE ADJACENT DUPLICATES FROM lt_dtp COMPARING dtp.
+    LOOP AT lt_dtp INTO la_dtp.
+      CALL METHOD cl_rsbk_dtp=&gt;factory
+        EXPORTING
+          i_dtp   = la_dtp-dtp
+        RECEIVING
+          r_r_dtp = lr_dtp.
+      CALL METHOD lr_dtp-&gt;if_rso_tlogo_maintain~is_active
+        RECEIVING
+          r_is_active = lv_active.
+      IF lv_active IS INITIAL.
+        TRY.
+            CALL METHOD lr_dtp-&gt;get_text
+              EXPORTING
+                i_langu   = sy-langu
+              RECEIVING
+                r_dtptext = l_text.
+          CATCH cx_rs_access_error .
+        ENDTRY.
+        la_dtp-text = l_text.
+        MODIFY lt_dtp FROM la_dtp.
+      ELSE.
+        DELETE lt_dtp.
+      ENDIF.
+      CLEAR: l_text, la_inadtp, la_dtp.
+    ENDLOOP.
+  ENDIF.
+  IF lt_dtp IS NOT INITIAL.
+    SORT lt_dtp BY tgt.
+    DESCRIBE TABLE lt_dtp LINES l_lines.
+    FORMAT COLOR COL_NEGATIVE.
+    WRITE:/ l_lines, &apos;Inactive DTPs found&apos;, /. FORMAT COLOR COL_HEADING.
+    WRITE: text-053, 48 text-054, 76 text-062, 110 text-061.
+    FORMAT COLOR OFF.
+    LOOP AT lt_dtp INTO la_dtp.
+      WRITE:/ la_dtp-src UNDER text-053, la_dtp-tgt UNDER text-054, la_dtp-dtp UNDER text-062, la_dtp-text UNDER text-061.
+    ENDLOOP.
+  ELSE.
+    FORMAT COLOR COL_POSITIVE.
+    WRITE:/ &apos;No Inactive DTPs found&apos;. FORMAT COLOR OFF.
+  ENDIF.
+
+ENDFORM.                    &quot; GET_INACTIV_DTP
+*&amp;---------------------------------------------------------------------*
+*&amp;      Form  GET_INACTIV_PCHAIN
+*&amp;---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  --&gt;  p1        text
+*  &lt;--  p2        text
+*----------------------------------------------------------------------*
+FORM get_inactiv_pchain .
+
+  CHECK x_c7 IS NOT INITIAL.
+
+  DATA: lt_chainattr TYPE rspc_t_chainattr.
+  DATA: lt_chaint TYPE rspc_t_chaint.
+  DATA: lt_chainattr2 TYPE rspc_t_chainattr.
+  DATA: ls_chainattr LIKE LINE OF lt_chainattr.
+  DATA: ls_chaint LIKE LINE OF lt_chaint.
+
+  DATA: output TYPE string.
+  DATA: line_prefix TYPE string.
+
+  &quot; Get list of active chains
+  CALL FUNCTION &apos;RSPC_GET_CHAIN&apos;
+   EXPORTING
+     i_objvers             = &apos;A&apos;
+   IMPORTING
+     e_t_chainattr            = lt_chainattr
+   EXCEPTIONS
+     aborted_by_user       = 1
+     OTHERS                = 2.
+  IF sy-subrc &lt;&gt; 0.
+    MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
+            WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
+  ENDIF.
+
+  &quot; Get list of modified chains
+  CALL FUNCTION &apos;RSPC_GET_CHAIN&apos;
+   EXPORTING
+     i_objvers             = &apos;M&apos;
+   IMPORTING
+     e_t_chainattr            = lt_chainattr2
+     e_t_chaint             = lt_chaint
+   EXCEPTIONS
+     aborted_by_user       = 1
+     OTHERS                = 2.
+  IF sy-subrc &lt;&gt; 0.
+    MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
+            WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
+  ENDIF.
+
+  APPEND LINES OF lt_chainattr2 TO lt_chainattr.
+  SORT lt_chainattr BY chain_id timestmp DESCENDING objvers.
+  DELETE ADJACENT DUPLICATES FROM lt_chainattr COMPARING chain_id.
+  DELETE lt_chainattr WHERE objvers = &apos;A&apos;.
+  REFRESH lt_chainattr2.
+  LOOP AT lt_chainattr INTO ls_chainattr.
+    APPEND ls_chainattr TO lt_chainattr2.
+  ENDLOOP.
+  lt_chainattr = lt_chainattr2.
+
+  IF lt_chainattr IS NOT INITIAL.
+    DESCRIBE TABLE lt_chainattr LINES l_lines.
+    FORMAT COLOR COL_NEGATIVE.
+    WRITE:/ l_lines, &apos;Inactive Process Chains found&apos;, /.
+    FORMAT COLOR COL_HEADING.
+    WRITE:/ text-071, 40 text-072.
+    FORMAT COLOR OFF.
+    LOOP AT lt_chainattr INTO ls_chainattr.
+      READ TABLE lt_chaint INTO ls_chaint WITH KEY chain_id = ls_chainattr-chain_id.
+      FORMAT COLOR COL_NORMAL.
+      WRITE:/ ls_chaint-txtlg UNDER text-072.
+      FORMAT COLOR COL_KEY.
+      WRITE: ls_chainattr-chain_id UNDER text-071.
+      FORMAT COLOR OFF.
+      CLEAR: ls_chainattr, ls_chaint.
+
+    ENDLOOP.
+  ELSE.
+    FORMAT COLOR COL_POSITIVE.
+    WRITE:/ &apos;No inactive Process chains found&apos;.
+    FORMAT COLOR OFF.
+  ENDIF.
+
+
+
+
+ENDFORM.                    &quot; GET_INACTIV_PCHAIN
+*&amp;---------------------------------------------------------------------*
+*&amp;      Form  GET_INACTIV_DTASRC
+*&amp;---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  --&gt;  p1        text
+*  &lt;--  p2        text
+*----------------------------------------------------------------------*
+FORM get_inactiv_dtasrc .
+  TYPES:
+  BEGIN OF ty_rsds,
+    ds TYPE roosourcer,
+    logsys TYPE rsslogsys,
+    END OF ty_rsds.
+  DATA: lt_rsds TYPE SORTED TABLE OF ty_rsds WITH UNIQUE KEY ds logsys,
+        la_rsds TYPE ty_rsds.
+  CHECK x_c9 IS NOT INITIAL.
+  SELECT datasource logsys
+    FROM rsds INTO TABLE lt_rsds
+    WHERE objvers = &apos;M&apos;
+    AND objstat = &apos;INA&apos;.
+  IF sy-subrc = 0.
+    DESCRIBE TABLE lt_rsds LINES l_lines.
+    FORMAT COLOR COL_NEGATIVE. WRITE:/ l_lines, &apos;Inactive DataSources found&apos;, /.
+    FORMAT COLOR OFF.
+    LOOP AT lt_rsds INTO la_rsds.
+      WRITE:/ la_rsds-ds, la_rsds-logsys.
+    ENDLOOP.
+  ELSE.
+    FORMAT COLOR COL_POSITIVE.
+    WRITE:/ &apos;No Inactive DataSources found&apos;.
+    FORMAT COLOR OFF.
+  ENDIF.
+
+
+ENDFORM.                    &quot; GET_INACTIV_DTASRC
+*&amp;---------------------------------------------------------------------*
+*&amp;      Form  AT_SEL_SCR_OUTPUT
+*&amp;---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  --&gt;  p1        text
+*  &lt;--  p2        text
+*----------------------------------------------------------------------*
+FORM at_sel_scr_output .
+  DATA: l_option TYPE xfeld.
+  CASE checkbox_mark.
+    WHEN &apos;S&apos;. l_option = &apos;X&apos;.
+    WHEN &apos;D&apos;. l_option = &apos; &apos;.
+  ENDCASE.
+  IF checkbox_mark IS NOT INITIAL.
+    x_c1 = l_option.
+    x_c2 = l_option.
+    x_c3 = l_option.
+    x_c4 = l_option.
+    x_c5 = l_option.
+    x_c6 = l_option.
+    x_c7 = l_option.
+    x_c8 = l_option.
+    x_c9 = l_option.
+    CLEAR checkbox_mark.
+  ENDIF.
+ENDFORM.                    &quot; AT_SEL_SCR_OUTPUT
+*&amp;---------------------------------------------------------------------*
+*&amp;      Form  AT_CALL
+*&amp;---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  --&gt;  p1        text
+*  &lt;--  p2        text
+*----------------------------------------------------------------------*
+FORM at_call .
+  IF sy-ucomm EQ &apos;COM1&apos;.
+    CASE x_call.
+      WHEN &apos;X&apos;.
+        checkbox_mark = &apos;S&apos;.
+      WHEN space.
+        checkbox_mark = &apos;D&apos;.
+    ENDCASE.
+  ELSEIF sy-ucomm EQ &apos;COM2&apos;.
+    CLEAR x_call.
+  ENDIF.
+ENDFORM.                    &quot; AT_CALL</source>
+ </PROG>
+</nugget>

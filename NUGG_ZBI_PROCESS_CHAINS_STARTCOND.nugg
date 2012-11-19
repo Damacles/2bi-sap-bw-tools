@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-16"?>
+<nugget name="ZBI_PROCESS_CHAINS_STARTCOND">
+ <PROG NAME="ZBI_PROCESS_CHAINS_STARTCOND" VARCL="X" SUBC="1" CNAM="BE92304" CDAT="20110405" UNAM="BE92304" UDAT="20110410" VERN="000012" RMAND="100" RLOAD="E" FIXPT="X" SDATE="20110410" STIME="234914" IDATE="20110410" ITIME="234914" UCCHECK="X">
+  <textPool>
+   <language SPRAS="E">
+    <textElement ID="R" ENTRY="List Process Chain Start Conditions" LENGTH="35 "/>
+   </language>
+  </textPool>
+  <source>*&amp;---------------------------------------------------------------------*
+*&amp; Report  ZBI_PROCESS_CHAINS_STARTCOND
+*&amp;
+*&amp;---------------------------------------------------------------------*
+*&amp;
+*&amp;
+*&amp;---------------------------------------------------------------------*
+
+REPORT  zbi_process_chains_startcond.
+
+DATA: ls_rspctrigger TYPE rspctrigger.
+DATA: lt_rspctrigger TYPE STANDARD TABLE OF rspctrigger.
+
+DATA: lt_chainattr TYPE rspc_t_chainattr.
+DATA: ls_chainattr LIKE LINE OF lt_chainattr.
+Data: l_string type string.
+
+SELECT-OPTIONS s_rspc FOR ls_chainattr-chain_id.
+
+&quot; Get list of active chains
+CALL FUNCTION &apos;RSPC_GET_CHAIN&apos;
+ EXPORTING
+*   I_CHAIN               =
+*   I_TYPE                =
+*   I_VARIANT             =
+*   I_T_VARIANT           =
+   i_objvers             = &apos;A&apos;
+*   I_WITH_DIALOG         = &apos; &apos;
+*   I_ONE_NO_DIALOG       = &apos; &apos;
+*   I_LANGU               = SY-LANGU
+*   I_FILTER_CLIENT       = &apos; &apos;
+ IMPORTING
+*   E_T_CHAIN_IDS         =
+*   E_T_CHAINS            =
+*   E_T_CHAINATTR         =
+   e_t_chainattr            = lt_chainattr
+*   E_NEW                 =
+ EXCEPTIONS
+   aborted_by_user       = 1
+   OTHERS                = 2
+          .
+IF sy-subrc &lt;&gt; 0.
+  MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
+          WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
+ENDIF.
+
+LOOP AT lt_chainattr INTO ls_chainattr where chain_id in s_rspc.
+  CALL FUNCTION &apos;RSPC_API_CHAIN_GET_STARTCOND&apos;
+    EXPORTING
+      i_chain     = ls_chainattr-chain_id
+    IMPORTING
+      e_s_trigger = ls_rspctrigger
+    EXCEPTIONS
+      failed      = 1
+      OTHERS      = 2.
+  IF sy-subrc &lt;&gt; 0.
+* MESSAGE ID SY-MSGID TYPE SY-MSGTY NUMBER SY-MSGNO
+*         WITH SY-MSGV1 SY-MSGV2 SY-MSGV3 SY-MSGV4.
+  ENDIF.
+
+  append ls_rspctrigger to lt_rspctrigger.
+ENDLOOP.
+sort lt_rspctrigger by meta startdttyp variante.
+delete lt_rspctrigger where variante is initial.
+
+WRITE :/ &apos;Chain Name                    &apos;, &apos;|API&apos; , &apos;|SCH&apos; ,&apos;|&apos;, &apos;Start Date&apos;,&apos;|&apos;, &apos;Start Time&apos;.
+ULINE.
+loop at lt_rspctrigger into ls_rspctrigger.
+  write: / ls_rspctrigger-variante, &apos;|&apos;.
+  write: ls_rspctrigger-meta, &apos; |&apos;..
+  write: ls_rspctrigger-startdttyp, &apos; |&apos;..
+  write: ls_rspctrigger-SDLSTRTDT, &apos;|&apos;..
+  write: ls_rspctrigger-SDLSTRTTM, &apos;|&apos;..
+  ENDLOOP.</source>
+ </PROG>
+</nugget>
