@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PROG NAME="ZBI_SCHEDULE_PC_USER" VARCL="X" SUBC="1" RMAND="100" RLOAD="E" FIXPT="X" UCCHECK="X">
+ <textPool>
+  <language SPRAS="E">
+   <textElement ID="R" ENTRY="Schedule a PC immediately if not triggered already in the last hour" LENGTH="67 "/>
+  </language>
+ </textPool>
+ <source>*&amp;---------------------------------------------------------------------*
+*&amp; Report  ZBI_SCHEDULE_PC_USER
+*&amp;
+*&amp;---------------------------------------------------------------------*
+*&amp;
+*&amp;
+*&amp;---------------------------------------------------------------------*
+
+report  zbi_schedule_pc_user.
+
+
+&quot; Input parameters: Name of process chain
+&quot; Waiting period since previous execution
+
+
+&quot; Program will fail for users that do not have the authorization object
+&quot; S_BTCH_NAM with field BTCUNAME set to BWREMOTE or whatever user is used for
+&quot; PC job scheduling. If not an error will appear in SM21
+
+
+parameters p_pc type rspc_chain.
+&quot; parameters p_delay type t.
+
+data:
+      ls_tvarvc type tvarvc,
+      l_curtime type sy-uzeit,
+      l_prevdate type sy-datum,
+      l_prevtime type sy-uzeit,
+      l_timeinterval type sy-uzeit,
+      l_mindelay type t,
+      l_name type rvari_vnam.
+
+&quot; Exit if no PC selected
+if p_pc is initial.
+  message e001(00) with &apos;No PC selected&apos;.
+  exit.
+endif.
+
+
+&quot; Set minimum delay to 1h
+l_mindelay = &apos;010000&apos;.
+
+
+&quot; Retrieve the timestamp of previous execution
+concatenate &apos;PCUS_&apos; p_pc into l_name.
+select single * from tvarvc
+  into ls_tvarvc
+  where name = l_name
+    and type = &apos;P&apos;
+    and numb = &apos;0000&apos;.
+
+&quot; IF a previous run timestamp is found get time interval since last run
+&quot; else set it to the required amouint +1 + prepare ls_tvarvc for record creation
+if sy-subrc = 0.
+  l_prevdate = ls_tvarvc-low.
+  l_curtime = sy-uzeit.
+
+  &quot; If last run was not today compre current time to &apos;000000&apos;
+  if l_prevdate &lt; sy-datum.
+    l_prevtime = &apos;000000&apos;.
+  else.
+    l_prevtime = ls_tvarvc-high.
+  endif.
+
+  l_timeinterval  = l_curtime - l_prevtime.
+else.
+  l_timeinterval = l_mindelay + &apos;000001&apos;.
+  ls_tvarvc-name = l_name.
+  ls_tvarvc-type = &apos;P&apos;.
+  ls_tvarvc-numb = &apos;0000&apos;.
+
+endif.
+
+if l_timeinterval &gt; l_mindelay.
+  &quot; Ok to schedule PC
+  call function &apos;RSPC_API_CHAIN_START&apos;
+    exporting
+      i_chain             = p_pc
+*     I_T_VARIABLES       =
+*     I_SYNCHRONOUS       =
+*     I_SIMULATE          =
+     i_noplan            = &apos;X&apos;
+     i_dont_wait         = &apos;X&apos;
+*   IMPORTING
+*     E_LOGID             =
+   exceptions
+     failed              = 1
+     others              = 2
+            .
+  if sy-subrc &lt;&gt; 0.
+    &quot;popup saying that scheduling failed. Contact support
+    message e001(00) with &apos;Scheduling of Process Chain failed. Please contact support.&apos;.
+  else.
+    &quot; Report that scheduling was successful.
+    message i001(00) with &apos;Scheduling of :&apos; p_pc &apos;: successful&apos;.
+
+    &quot; Is scheduled ok then update timestamp
+    ls_tvarvc-low = sy-datum.
+    ls_tvarvc-high = sy-uzeit.
+    modify tvarvc from ls_tvarvc.
+    commit work.
+  endif.
+
+else.
+
+  &quot;popup sayng that last run was on ... please wait till.
+  l_prevtime = l_prevtime + l_mindelay.
+  message e001(00) with &apos;Previous scheduling of :&apos; p_pc &apos;: in the last hour. Wait till:&apos; l_prevtime.
+
+endif.</source>
+</PROG>

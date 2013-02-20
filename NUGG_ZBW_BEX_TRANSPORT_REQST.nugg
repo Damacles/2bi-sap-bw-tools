@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="utf-8"?>
+<nugget name="ZBW_BEX_TRANSPORT_REQST">
+ <PROG NAME="ZBW_BEX_TRANSPORT_REQST" VARCL="X" SUBC="1" RMAND="100" RLOAD="E" FIXPT="X" UCCHECK="X">
+  <textPool>
+   <language SPRAS="E">
+    <textElement ID="R" ENTRY="Manage BEx Transport Request" LENGTH="28 "/>
+    <textElement ID="S" KEY="P_REALS" ENTRY="        Release existing BEx Tpt Rqst" LENGTH="37 "/>
+    <textElement ID="S" KEY="S_DEVC" ENTRY="        Package" LENGTH="15 "/>
+   </language>
+  </textPool>
+  <source>*&amp;---------------------------------------------------------------------*
+*&amp; Report  ZBW_BEX_TRANSPORT_REQST
+*&amp;
+*&amp;---------------------------------------------------------------------*
+*&amp;
+*&amp;
+*&amp;---------------------------------------------------------------------*
+
+report  zbw_bex_transport_reqst.
+* V0.1  Release only works for BEx Transport Requests without subtasks
+
+data:
+      l_trkorr type trkorr,
+      l_text type trexreqhd-text,
+      l_message type tr004-msgtext,
+      l_error type tr007-exception,
+      ls_e070 type e070,
+      lt_e070 type standard table of e070,
+      lt_rsobexrequest type standard table of rsobexrequest,
+      l_devclass type devclass.
+
+field-symbols:
+      &lt;s_rsobexrequest&gt; type rsobexrequest,
+      &lt;s_e070&gt; type e070.
+
+* Check if user wants to release existing BEx Transport Request
+* or just create requests if none exist.  (Default to release)
+parameters p_reals type c as checkbox default &apos;X&apos;.
+* Selection of Packages
+select-options s_devc for l_devclass.
+
+* Text for Tpt Request default to &quot;BEx Transport Request - &lt;Package Name&gt;&quot;
+
+
+* Collect data for requeste pacakages
+select * from rsobexrequest into table lt_rsobexrequest
+  where devclass in s_devc.
+
+* Loop at packages
+** If Package has tpt req and release allowed
+*** If tpt request has tasks release them 1st
+*** Release
+*** Log actions
+*** Create request
+*** Record new request in table
+*** Log actions
+* Endloop
+
+loop at lt_rsobexrequest assigning &lt;s_rsobexrequest&gt;.
+  if &lt;s_rsobexrequest&gt;-trkorr is not initial
+    and p_reals = &apos;X&apos;.
+
+    &quot; Check that request is not yet released
+    clear ls_e070.
+    select single * from e070 into ls_e070
+      where trkorr = &lt;s_rsobexrequest&gt;-trkorr.
+    if ls_e070-trstatus &lt;&gt; &apos;R&apos;.
+      &quot;Release all (unreleased) tasks linked to request
+      select * from e070 into table lt_e070
+        where strkorr = &lt;s_rsobexrequest&gt;-trkorr and
+        trstatus &lt;&gt; &apos;R&apos;.
+      loop at lt_e070 assigning &lt;s_e070&gt;.
+        call function &apos;TR_RELEASE_REQUEST&apos;
+          exporting
+            iv_trkorr                  = &lt;s_e070&gt;-trkorr
+            iv_success_message         = &apos; &apos;
+            iv_display_export_log      = &apos; &apos;
+          exceptions
+            cts_initialization_failure = 1
+            enqueue_failed             = 2
+            no_authorization           = 3
+            invalid_request            = 4
+            request_already_released   = 5
+            repeat_too_early           = 6
+            error_in_export_methods    = 7
+            object_check_error         = 8
+            docu_missing               = 9
+            db_access_error            = 10
+            action_aborted_by_user     = 11
+            export_failed              = 12
+            others                     = 13.
+
+        if sy-subrc &lt;&gt; 0.
+          &quot; Implement suitable error handling here
+          &quot;Log error + skipping package
+          continue.
+        endif.
+      endloop.
+      call function &apos;TR_RELEASE_REQUEST&apos;
+        exporting
+          iv_trkorr                  = &lt;s_rsobexrequest&gt;-trkorr
+          iv_success_message         = &apos; &apos;
+          iv_display_export_log      = &apos; &apos;
+        exceptions
+          cts_initialization_failure = 1
+          enqueue_failed             = 2
+          no_authorization           = 3
+          invalid_request            = 4
+          request_already_released   = 5
+          repeat_too_early           = 6
+          error_in_export_methods    = 7
+          object_check_error         = 8
+          docu_missing               = 9
+          db_access_error            = 10
+          action_aborted_by_user     = 11
+          export_failed              = 12
+          others                     = 13.
+
+      if sy-subrc &lt;&gt; 0.
+        &quot; Implement suitable error handling here
+        &quot;Log error + skipping package
+        continue.
+      endif.
+    endif.
+  endif.
+
+  &quot; Create request
+  concatenate &apos;BEx Transport Request - &apos; &lt;s_rsobexrequest&gt;-devclass into  l_text RESPECTING BLANKS.
+  call function &apos;TR_EXT_CREATE_REQUEST&apos;
+    exporting
+*     IV_REQUEST_TYPE = &apos;K&apos;
+*     IV_TARGET       = &apos; &apos;
+      iv_author       = sy-uname
+      iv_text         = l_text
+*     IV_REQ_ATTR     =
+*     IV_ATTR_REF     =
+    importing
+      es_req_id       = l_trkorr
+*     ES_REQ_HEADER   =
+      es_msg          = l_message
+      ev_exception    = l_error.
+  if l_error is not initial.
+    &quot;Log content ot l_message
+    continue.
+  endif.
+  &lt;s_rsobexrequest&gt;-trkorr = l_trkorr.
+  update rsobexrequest from &lt;s_rsobexrequest&gt;.
+  commit work.
+endloop.</source>
+ </PROG>
+</nugget>

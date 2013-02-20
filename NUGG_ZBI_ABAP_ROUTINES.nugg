@@ -1,0 +1,1142 @@
+<?xml version="1.0" encoding="utf-8"?>
+<nugget name="ZBI_ABAP_ROUTINES">
+ <PROG NAME="ZBI_ABAP_ROUTINES_ANALYZE" VARCL="X" SUBC="1" RMAND="100" RLOAD="E" FIXPT="X" UCCHECK="X">
+  <textPool>
+   <language SPRAS="E">
+    <textElement ID="R" ENTRY="Program ZBI_ABAP_ROUTINES_ANALYZE" LENGTH="33 "/>
+   </language>
+  </textPool>
+  <source>************************************************************************
+* ZBI_ABAP_ROUTINES_ANALYZE
+* BI: Analyze ABAP Routines
+*
+* (c) SAP AG 2005                                    MFB, SAP Labs, LLC
+* created:     2005-08-30
+* last update: 2008-08-13
+************************************************************************
+* Selection texts:
+* P_ANAL    Highlight ABAP Coding
+* P_DISP    Display ABAP Coding
+* P_VERS_A  Current Version
+* P_VERS_D  Comparison Version
+* S_CODEID  ABAP code ID
+************************************************************************
+* This tool displays one or several ABAP routines. If two different
+* object versions are selected, then a code comparison is performed.
+* This way you can easily see differences for example between &quot;Active&quot;
+* and &quot;BI Content&quot; version of the code.
+*
+* The highlight option will color critical pieces of the code:
+* - CALL FUNCTION and PERFORM statements
+*   (green - potential for bad performance in function or form routine)
+* - SELECT and SELECT SINGLE statements
+*   (yellow - potential for bad performance)
+* - INSERT, UPDATE, MODIFY, DELETE statements
+*   (red - potential for data inconsistency -&gt; Use APIs!)
+************************************************************************
+
+REPORT zbi_abap_routines_analyze LINE-SIZE 255.
+
+TYPE-POOLS: rs, rsaa, icon.
+
+TABLES:
+  rsarout,
+  rsaabap,
+  rsaabapinv.
+
+SELECTION-SCREEN BEGIN OF BLOCK b1 WITH FRAME.
+SELECT-OPTIONS:
+  s_codeid FOR rsarout-codeid.
+SELECTION-SCREEN END OF BLOCK b1.
+
+SELECTION-SCREEN BEGIN OF BLOCK b2 WITH FRAME.
+PARAMETERS:
+  p_vers_a TYPE rsobjvers DEFAULT &apos;A&apos;,
+  p_vers_d TYPE rsobjvers DEFAULT &apos;D&apos;,
+  p_disp   AS CHECKBOX    DEFAULT &apos;X&apos;,
+  p_anal   AS CHECKBOX    DEFAULT space.
+SELECTION-SCREEN END OF BLOCK b2.
+
+TYPES:
+  BEGIN OF ys_line,
+    line TYPE edpline,
+  END OF ys_line,
+  yt_line TYPE TABLE OF ys_line.
+
+DATA:
+  gs_codeid   TYPE rsaa_s_codeid,
+  gt_codeid   TYPE rsaa_t_codeid,
+  g_tabix_a   TYPE sy-tabix,
+  g_tabix_d   TYPE sy-tabix,
+  g_tabix_e   TYPE sy-tabix,
+  g_offset_a  TYPE sy-tabix,
+  g_offset_d  TYPE sy-tabix,
+  g_offset    TYPE sy-tabix,
+  g_line      TYPE sy-lisel,
+  g_count(6)  TYPE n,
+  g_diff      TYPE rs_bool.
+
+DATA:
+  gs_rout_a      TYPE rsaa_s_arout,
+  gs_rout_d      TYPE rsaa_s_arout,
+  gt_rout_a      TYPE rsaa_t_arout,
+  gt_rout_d      TYPE rsaa_t_arout,
+  gs_text_a      TYPE rsaa_s_aroutt,
+  gs_text_d      TYPE rsaa_s_aroutt,
+  gt_text_a      TYPE rsaa_t_aroutt,
+  gt_text_d      TYPE rsaa_t_aroutt,
+  gt_abap_a      TYPE rsaa_t_aabap,
+  gt_abap_d      TYPE rsaa_t_aabap,
+  gt_abapinv_a   TYPE rsaa_t_aabap,
+  gt_abapinv_d   TYPE rsaa_t_aabap,
+  gs_code_a      TYPE rsaa_s_aabap,
+  gs_code_d      TYPE rsaa_s_aabap,
+  gt_code_a      TYPE rsaa_t_aabap,
+  gt_code_d      TYPE rsaa_t_aabap,
+  gs_line_a      TYPE ys_line,
+  gs_line_d      TYPE ys_line,
+  gt_line_a      TYPE yt_line,
+  gt_line_d      TYPE yt_line.
+
+*----------------------------------------------------------------------
+DEFINE write_version.
+  case &amp;1.
+    when &apos;A&apos;.
+      write: icon_led_green    as icon, &apos;Active Version&apos;.
+    when &apos;D&apos;.
+      write: icon_sap          as icon, &apos;Content Version&apos;.
+    when &apos;M&apos;.
+      write: icon_led_yellow   as icon, &apos;Revised Version&apos;.
+    when &apos;N&apos;.
+      write: icon_led_inactive as icon, &apos;New Version&apos;.
+  endcase.
+END-OF-DEFINITION.
+
+DEFINE write_code.
+  if &amp;2-line_no is initial and
+   ( &amp;4-line_no is initial or g_diff = rs_c_false ).
+    skip.
+  endif.
+
+  new-line.
+  clear g_line.
+  case &amp;1.
+    when &apos;A&apos;.
+      write: at 01 &amp;2-line_no+2(4) color col_key,
+             at 06 &amp;2-line         color &amp;3 intensified off.
+
+      g_line+00(04) = &amp;2-line_no+2(4).
+      g_line+06(72) = &amp;2-line.
+    when &apos;D&apos;.
+      write: at 80 &amp;4-line_no+2(4) color col_key,
+             at 85 &amp;4-line         color &amp;5 intensified off.
+    when &apos;AD&apos;.
+      write: at 01 &amp;2-line_no+2(4) color col_key,
+             at 06 &amp;2-line         color &amp;3 intensified off,
+             at 80 &amp;4-line_no+2(4) color col_key,
+             at 85 &amp;4-line         color &amp;5 intensified off.
+
+      g_line+00(04) = &amp;2-line_no+2(4).
+      g_line+06(72) = &amp;2-line.
+  endcase.
+
+  if p_anal = rs_c_true and g_line+06(1) &lt;&gt; &apos;*&apos;.
+
+*   DML statements (red)
+    search g_line for &apos;INSERT&apos;.
+    if sy-subrc = 0.
+      g_offset = sy-fdpos - 1.
+      if g_line+g_offset(1) = space or g_line+g_offset(1) = &apos;.&apos;.
+        write at sy-fdpos &apos;INSERT&apos; color col_negative.
+      endif.
+    endif.
+    search g_line for &apos;UPDATE&apos;.
+    if sy-subrc = 0.
+      g_offset = sy-fdpos - 1.
+      if g_line+g_offset(1) = space or g_line+g_offset(1) = &apos;.&apos;.
+        write at sy-fdpos &apos;UPDATE&apos; color col_negative.
+      endif.
+    endif.
+    search g_line for &apos;MODIFY&apos;.
+    if sy-subrc = 0.
+      g_offset = sy-fdpos - 1.
+      if g_line+g_offset(1) = space or g_line+g_offset(1) = &apos;.&apos;.
+        write at sy-fdpos &apos;MODIFY&apos; color col_negative.
+      endif.
+    endif.
+    search g_line for &apos;DELETE&apos;.
+    if sy-subrc = 0.
+      g_offset = sy-fdpos - 1.
+      if g_line+g_offset(1) = space or g_line+g_offset(1) = &apos;.&apos;.
+        write at sy-fdpos &apos;DELETE&apos; color col_negative.
+      endif.
+    endif.
+
+*   Select statements (yellow)
+    search g_line for &apos;SELECT&apos;.
+    if sy-subrc = 0.
+      g_offset = sy-fdpos - 1.
+      if g_line+g_offset(1) = space or g_line+g_offset(1) = &apos;.&apos;.
+        write at sy-fdpos &apos;SELECT&apos; color col_negative.
+      endif.
+    endif.
+    search g_line for &apos;SELECT SINGLE&apos;.
+    if sy-subrc = 0.
+      write at sy-fdpos &apos;SELECT SINGLE&apos; color col_total.
+    endif.
+
+*   External calls (green)
+    search g_line for &apos;CALL FUNCTION&apos;.
+    if sy-subrc = 0.
+      write at sy-fdpos &apos;CALL FUNCTION&apos; color col_positive.
+    endif.
+    search g_line for &apos;PERFORM&apos;.
+    if sy-subrc = 0.
+      g_offset = sy-fdpos - 1.
+      if g_line+g_offset(1) = space or g_line+g_offset(1) = &apos;.&apos;.
+        write at sy-fdpos &apos;PERFORM&apos; color col_positive.
+      endif.
+    endif.
+
+  endif.
+END-OF-DEFINITION.
+
+*----------------------------------------------------------------------
+INITIALIZATION.
+
+  IF p_anal = rs_c_true.
+    p_disp = rs_c_true.
+    p_vers_d = p_vers_a.
+  ENDIF.
+
+*----------------------------------------------------------------------
+START-OF-SELECTION.
+
+* Read routines
+  REFRESH gt_codeid.
+  SELECT * FROM rsarout
+    WHERE codeid IN s_codeid AND objvers = p_vers_a.
+    CLEAR gs_codeid.
+    gs_codeid-sign   = &apos;I&apos;.
+    gs_codeid-option = &apos;EQ&apos;.
+    gs_codeid-low    = rsarout-codeid.
+    COLLECT gs_codeid INTO gt_codeid.
+  ENDSELECT.
+
+  PERFORM analyze_routines
+    USING gt_codeid p_vers_a p_vers_d p_disp p_anal 0 &apos;X&apos;.
+
+*&amp;--------------------------------------------------------------------*
+*&amp;      Form  analyze_routine
+*&amp;--------------------------------------------------------------------*
+FORM analyze_routine
+  USING
+    p_codeid  TYPE rscodeid
+    p_vers_a  TYPE rsobjvers
+    p_vers_d  TYPE rsobjvers
+    p_disp    TYPE c
+    p_anal    TYPE c
+    p_indent  TYPE i
+    p_text    TYPE c.
+
+  REFRESH gt_codeid.
+  CLEAR gs_codeid.
+  gs_codeid-sign   = &apos;I&apos;.
+  gs_codeid-option = &apos;EQ&apos;.
+  gs_codeid-low    = p_codeid.
+  COLLECT gs_codeid INTO gt_codeid.
+
+  PERFORM analyze_routines
+    USING gt_codeid p_vers_a p_vers_d p_disp p_anal p_indent p_text.
+
+ENDFORM.                    &quot;analyze_routine
+*&amp;--------------------------------------------------------------------*
+*&amp;      Form  analyze_routine
+*&amp;--------------------------------------------------------------------*
+FORM analyze_routines
+  USING
+    pt_codeid TYPE rsaa_t_codeid
+    p_vers_a  TYPE rsobjvers
+    p_vers_d  TYPE rsobjvers
+    p_disp    TYPE c
+    p_anal    TYPE c
+    p_indent  TYPE i
+    p_text    TYPE c.
+
+  REFRESH: gt_rout_a, gt_rout_d, gt_abap_a, gt_abap_d.
+  REFRESH: gt_abapinv_a, gt_abapinv_d, gt_text_a, gt_text_d.
+
+  CALL FUNCTION &apos;RSAA_ROUTINE_MULTI_GET&apos;
+    EXPORTING
+      i_objvers              = p_vers_a
+      i_t_codeid             = pt_codeid
+      i_all_languages        = rs_c_false
+    IMPORTING
+      e_t_arout              = gt_rout_a
+      e_t_aabap              = gt_abap_a
+      e_t_aabapinv           = gt_abapinv_a
+      e_t_aroutt             = gt_text_a
+    EXCEPTIONS
+      no_code_present        = 1
+      wrong_import_parameter = 2
+      OTHERS                 = 3.
+  IF sy-subrc &lt;&gt; 0.
+    MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
+            WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
+    EXIT.
+  ENDIF.
+
+  CALL FUNCTION &apos;RSAA_ROUTINE_MULTI_GET&apos;
+    EXPORTING
+      i_objvers              = p_vers_d
+      i_t_codeid             = pt_codeid
+      i_all_languages        = rs_c_false
+    IMPORTING
+      e_t_arout              = gt_rout_d
+      e_t_aabap              = gt_abap_d
+      e_t_aabapinv           = gt_abapinv_d
+      e_t_aroutt             = gt_text_d
+    EXCEPTIONS
+      no_code_present        = 1
+      wrong_import_parameter = 2
+      OTHERS                 = 3.
+  IF sy-subrc &lt;&gt; 0.
+    MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
+            WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
+    EXIT.
+  ENDIF.
+
+* Process routines
+  LOOP AT gt_rout_a INTO gs_rout_a.
+
+    g_count = sy-tabix.
+
+*   Header
+    CLEAR gs_text_a.
+    READ TABLE gt_text_a INTO gs_text_a WITH KEY
+      langu   = sy-langu
+      codeid  = gs_rout_a-codeid
+      objvers = p_vers_a.
+
+    IF p_text = &apos;X&apos;.
+      FORMAT COLOR COL_NORMAL INTENSIFIED ON.
+      WRITE: AT /p_indent icon_abap AS ICON, &apos;ABAP Routine:&apos;.
+      IF gs_text_a-txtlg IS INITIAL.
+        WRITE: AT 40 &apos;Global Data Definition&apos;, AT 99 space.
+      ELSE.
+        WRITE: AT 40 gs_text_a-txtlg.
+      ENDIF.
+      SKIP.
+    ENDIF.
+
+    FORMAT COLOR OFF.
+    WRITE: AT /p_indent &apos;Code Type:&apos;.
+    CASE gs_rout_a-codetp.
+      WHEN &apos;TR&apos;.
+        WRITE: AT 40 &apos;Transfer Rule&apos;.
+      WHEN &apos;UR&apos;.
+        WRITE: AT 40 &apos;Update Rule&apos;.
+      WHEN &apos;TC&apos;.
+        WRITE: AT 40 &apos;Time Conversion&apos;.
+      WHEN &apos;IC&apos;.
+        WRITE: AT 40 &apos;InfoObject Conversion&apos;.
+      WHEN &apos;GR&apos;.
+        WRITE: AT 40 &apos;Global Routine&apos;.
+      WHEN &apos;S1&apos;.
+        WRITE: AT 40 &apos;Deletion Routine&apos;.
+      WHEN &apos;TF&apos;.
+        WRITE: AT 40 &apos;Transformation&apos;.
+      WHEN space.
+        WRITE: AT 40 &apos;Formula Routine (generated)&apos;.
+      WHEN OTHERS.
+        WRITE: AT 40 &apos;Unknown Type of Routine&apos;.
+    ENDCASE.
+
+    WRITE: AT /p_indent &apos;Code ID:&apos;, AT 40 gs_rout_a-codeid.
+    WRITE: AT /p_indent &apos;Version Comparison:&apos;, AT 38 space.
+
+*   Get coding
+    PERFORM get_code
+      USING
+         gs_rout_a-codeid
+         gs_rout_a-codetp
+         gt_abap_a
+         gt_abapinv_a
+      CHANGING
+         gt_code_a
+         gt_line_a.
+
+*   Compare coding
+    CLEAR g_diff.
+
+    READ TABLE gt_rout_d INTO gs_rout_d
+      WITH KEY codeid  = gs_rout_a-codeid.
+    IF sy-subrc = 0.
+      PERFORM get_code
+        USING
+           gs_rout_d-codeid
+           gs_rout_d-codetp
+           gt_abap_d
+           gt_abapinv_d
+        CHANGING
+           gt_code_d
+           gt_line_d.
+
+      IF gt_line_a[] = gt_line_d[].
+        write_version p_vers_a.
+        WRITE: icon_equal AS ICON.
+        write_version p_vers_d.
+      ELSE.
+        write_version p_vers_a.
+        WRITE: icon_not_equal_red AS ICON.
+        write_version p_vers_d.
+
+        g_diff = rs_c_true.
+      ENDIF.
+    ELSE.
+      write_version p_vers_a.
+      WRITE: &apos;(No Content Version)&apos;.
+    ENDIF.
+
+*   Display coding
+    IF p_disp = rs_c_true.
+
+      IF g_diff = rs_c_false.
+        SKIP.
+        FORMAT COLOR OFF.
+        NEW-LINE.
+        write_version p_vers_a.
+        SKIP.
+
+        LOOP AT gt_code_a INTO gs_code_a.
+          write_code &apos;A&apos; gs_code_a 2 gs_code_d 1.
+        ENDLOOP.
+      ELSE.
+        SKIP.
+        FORMAT COLOR OFF.
+        NEW-LINE.
+        write_version p_vers_a.
+        WRITE: AT 79 space.
+        write_version p_vers_d.
+        SKIP.
+
+        g_offset_a = 0.
+        g_offset_d = 0.
+        LOOP AT gt_code_a INTO gs_code_a.
+
+          g_tabix_a = sy-tabix.
+          g_tabix_d = g_tabix_a + g_offset_d.
+
+          READ TABLE gt_code_d INTO gs_code_d INDEX g_tabix_d.
+          IF sy-subrc = 0 AND g_offset_a = 0.
+            gs_line_a = gs_code_a-line.
+            TRANSLATE gs_line_a TO UPPER CASE.
+            CONDENSE gs_line_a.
+
+            gs_line_d = gs_code_d-line.
+            TRANSLATE gs_line_d TO UPPER CASE.
+            CONDENSE gs_line_d.
+
+            IF gs_line_a = gs_line_d.
+*             Identical lines (A = D)
+              write_code &apos;AD&apos; gs_code_a 2 gs_code_d 2.
+            ELSE.
+              gs_line_a = gs_code_a-line.
+              IF gs_line_a(1) = &apos;*&apos;.
+                SHIFT gs_line_a LEFT.
+              ENDIF.
+
+              gs_line_d = gs_code_d-line.
+              IF gs_line_d(1) = &apos;*&apos;.
+                SHIFT gs_line_d LEFT.
+              ENDIF.
+
+*             Different lines (A &lt;&gt; D)
+              SEARCH gt_code_d FOR gs_line_a STARTING AT g_tabix_d.
+              IF sy-subrc = 0.
+*               Additional lines in D
+                g_tabix_e = sy-tabix.
+
+                LOOP AT gt_code_d INTO gs_code_d
+                  FROM g_tabix_d TO g_tabix_e.
+                  IF sy-tabix &lt; g_tabix_e.
+                    write_code &apos;D&apos; gs_code_a 1 gs_code_d 7.
+                  ELSE.
+                    write_code &apos;AD&apos; gs_code_a 2 gs_code_d 2.
+                  ENDIF.
+                ENDLOOP.
+
+                g_offset_d = ( g_tabix_e - g_tabix_a ).
+              ELSE.
+                SEARCH gt_code_a FOR gs_line_d STARTING AT g_tabix_a.
+                IF sy-subrc = 0.
+*                 Additional lines in A
+                  g_tabix_e = sy-tabix.
+
+                  write_code &apos;A&apos; gs_code_a 7 gs_code_d 1.
+
+                  g_offset_a = ( g_tabix_e - g_tabix_a ) - 1.
+
+                  g_offset_d = ( g_tabix_d - g_tabix_e ).
+                ELSE.
+                  write_code &apos;AD&apos; gs_code_a 2 gs_code_d 7.
+                ENDIF.
+
+              ENDIF.
+
+            ENDIF.
+
+          ELSE.
+*           Additional lines in A
+            IF g_offset_a &gt; 0.
+              g_offset_a = g_offset_a - 1.
+            ENDIF.
+
+            write_code &apos;A&apos; gs_code_a 7 gs_code_d 1.
+          ENDIF.
+
+        ENDLOOP.
+
+*       Additional lines in D
+        g_tabix_d = g_tabix_d + 1.
+
+        LOOP AT gt_code_d INTO gs_code_d FROM g_tabix_d.
+          write_code &apos;D&apos; gs_code_a 1 gs_code_d 7.
+        ENDLOOP.
+
+      ENDIF.
+
+    ENDIF.
+
+    SKIP.
+
+  ENDLOOP.                  &quot;next routine
+
+  IF sy-subrc &lt;&gt; 0.
+    SKIP.
+    FORMAT COLOR OFF.
+    WRITE: AT /p_indent &apos;No routine found.&apos;.
+    SKIP.
+  ENDIF.
+
+ENDFORM.                    &quot;analyze_routine
+
+*&amp;--------------------------------------------------------------------*
+*&amp;      Form  get_code
+*&amp;--------------------------------------------------------------------*
+FORM get_code
+  USING
+    i_codeid   TYPE rscodeid
+    i_codetp   TYPE rscodetp
+    it_abap    TYPE rsaa_t_aabap
+    it_abapinv TYPE rsaa_t_aabap
+  CHANGING
+    et_code    TYPE rsaa_t_aabap
+    et_line    TYPE yt_line.
+
+  DATA:
+    ls_code  TYPE rsaa_s_aabap,
+    ls_line  TYPE ys_line,
+    l_trules TYPE rs_bool.
+
+  REFRESH et_code.
+  LOOP AT it_abap INTO ls_code WHERE codeid = i_codeid.
+    APPEND ls_code TO et_code.
+  ENDLOOP.
+
+  READ TABLE it_abapinv TRANSPORTING NO FIELDS
+    WITH KEY codeid = i_codeid.
+  IF sy-subrc = 0.
+    CLEAR ls_code.
+    ls_code-line_no = &apos;000000&apos;.
+    ls_code-line    = &apos;* Inverse Routine:&apos;.
+    APPEND ls_code TO et_code.
+
+    LOOP AT it_abapinv INTO ls_code WHERE codeid = i_codeid.
+      APPEND ls_code TO et_code.
+    ENDLOOP.
+  ENDIF.
+
+  IF i_codetp = &apos;TR&apos;.
+    l_trules = rs_c_true.
+  ELSE.
+    l_trules = rs_c_false.
+  ENDIF.
+
+  CALL FUNCTION &apos;RSAA_TRANSLATE_VARS_IN_ABAP&apos;
+    EXPORTING
+      i_translate_back = rs_c_false
+      i_for_transrules = l_trules
+    CHANGING
+      c_t_aabap        = et_code.
+
+  REFRESH et_line.
+  LOOP AT et_code INTO ls_code.
+    ls_line = ls_code-line.
+    TRANSLATE ls_line TO UPPER CASE.
+    CONDENSE ls_line.
+    IF NOT ls_line IS INITIAL.
+      APPEND ls_line TO et_line.
+    ENDIF.
+  ENDLOOP.
+
+ENDFORM.                    &quot;get_code</source>
+ </PROG>
+ <PROG NAME="ZBI_ABAP_ROUTINES_TRANSFORM" VARCL="X" SUBC="1" RMAND="100" RLOAD="E" FIXPT="X" UCCHECK="X">
+  <textPool>
+   <language SPRAS="E">
+    <textElement ID="R" ENTRY="Program ZBI_ABAP_ROUTINES_TRANSFORM" LENGTH="35 "/>
+    <textElement ID="S" KEY="P_ANAL" ENTRY="        Analyze" LENGTH="15 "/>
+    <textElement ID="S" KEY="P_DISP" ENTRY="        Display" LENGTH="15 "/>
+    <textElement ID="S" KEY="P_VERS_A" ENTRY="        Active Version Char" LENGTH="27 "/>
+    <textElement ID="S" KEY="P_VERS_D" ENTRY="        Delivered Version Char" LENGTH="30 "/>
+    <textElement ID="S" KEY="S_SNAME" ENTRY="        Source Object Name" LENGTH="26 "/>
+    <textElement ID="S" KEY="S_STYPE" ENTRY="        Source Object Type" LENGTH="26 "/>
+    <textElement ID="S" KEY="S_TNAME" ENTRY="        Target Object Name" LENGTH="26 "/>
+    <textElement ID="S" KEY="S_TRANID" ENTRY="D       ." LENGTH="25 "/>
+    <textElement ID="S" KEY="S_TTYPE" ENTRY="        Target Object Type" LENGTH="26 "/>
+   </language>
+  </textPool>
+  <source>************************************************************************
+* ZBI_ABAP_ROUTINES_TRANSFORM
+* BI: Analyze ABAP Routines in Transformations
+* check http://wiki.sdn.sap.com/wiki/display/Snippets/Display+and+Analysis+of+ABAP+Routines+in+BI
+*
+* (c) SAP AG 2008                                    MFB, SAP Labs, LLC
+* created:     2008-03-28
+* last update: 2012-12-06
+************************************************************************
+* Selection texts:
+* P_ANAL    Highlight ABAP Coding
+* P_DISP    Display ABAP Coding
+* P_VERS_A  Current Version
+* P_VERS_D  Comparison Version
+* S_ISOURC  InfoSource
+* S_LOGSYS  Source system
+* S_OSOURC  DataSource
+************************************************************************
+
+REPORT zbi_abap_routines_transform LINE-SIZE 255.
+
+TYPE-POOLS: icon, rsaa.
+
+TABLES:
+  rstran, rstransteprout.
+
+SELECTION-SCREEN BEGIN OF BLOCK b1 WITH FRAME.
+SELECT-OPTIONS:
+  s_tranid FOR rstran-tranid,
+  s_stype  FOR rstran-sourcetype,
+  s_sname  FOR rstran-sourcename,
+  s_ttype  FOR rstran-targettype,
+  s_tname  FOR rstran-targetname.
+SELECTION-SCREEN END OF BLOCK b1.
+
+SELECTION-SCREEN BEGIN OF BLOCK b2 WITH FRAME.
+PARAMETERS:
+  p_vers_a TYPE rsobjvers DEFAULT &apos;A&apos;,
+  p_vers_d TYPE rsobjvers DEFAULT &apos;D&apos;,
+  p_disp   AS CHECKBOX    DEFAULT &apos;X&apos;,
+  p_anal   AS CHECKBOX    DEFAULT space.
+SELECTION-SCREEN END OF BLOCK b2.
+
+TYPES:
+  BEGIN OF ys_codes,
+    sourcename LIKE rstran-sourcename,
+    targetname LIKE rstran-targetname,
+    sourcetype LIKE rstran-sourcetype,
+    targettype LIKE rstran-targettype,
+    codetp     TYPE char2,
+    ruleid     TYPE rstran_ruleid,
+    codeid     TYPE rssguid25,
+  END OF ys_codes,
+  yt_codes TYPE SORTED TABLE OF ys_codes WITH UNIQUE DEFAULT KEY.
+
+DATA:
+  gs_codes TYPE ys_codes,
+  gt_codes TYPE yt_codes.
+
+* F4-help
+TYPES:
+  BEGIN OF ys_help_value,
+    value       TYPE rstran-sourcename,
+    icon        TYPE rsicon,
+  END OF ys_help_value.
+
+DATA:
+  g_count             TYPE i,
+  g_value             TYPE dynfieldvalue,
+  gs_help_value       TYPE ys_help_value,
+  gt_help_value       TYPE TABLE OF ys_help_value,
+  gs_retval           TYPE ddshretval,
+  gt_retval           TYPE STANDARD TABLE OF ddshretval.
+
+AT SELECTION-SCREEN ON VALUE-REQUEST FOR s_sname-low.
+
+  PERFORM f4_sname CHANGING s_sname-low.
+
+AT SELECTION-SCREEN ON VALUE-REQUEST FOR s_sname-high.
+
+  PERFORM f4_sname CHANGING s_sname-high.
+
+AT SELECTION-SCREEN ON VALUE-REQUEST FOR s_tname-low.
+
+  PERFORM f4_tname CHANGING s_tname-low.
+
+AT SELECTION-SCREEN ON VALUE-REQUEST FOR s_tname-high.
+
+  PERFORM f4_tname CHANGING s_tname-high.
+
+START-OF-SELECTION.
+
+* Read transformations with ABAP routines
+  SELECT * FROM rstran
+    WHERE tranid     IN s_tranid
+      AND sourcetype IN s_stype
+      AND sourcename IN s_sname
+      AND targettype IN s_ttype
+      AND targetname IN s_tname
+      AND objvers    =  p_vers_a.
+
+    CLEAR gs_codes.
+    MOVE-CORRESPONDING rstran TO gs_codes.
+
+    IF NOT rstran-glbcode IS INITIAL.
+      gs_codes-codetp   = &apos;01&apos;.
+      gs_codes-codeid   = rstran-glbcode.
+      COLLECT gs_codes INTO gt_codes.
+    ENDIF.
+    IF NOT rstran-glbcode2 IS INITIAL.
+      gs_codes-codetp   = &apos;02&apos;.
+      gs_codes-codeid   = rstran-glbcode2.
+      COLLECT gs_codes INTO gt_codes.
+    ENDIF.
+    IF NOT rstran-startroutine IS INITIAL.
+      gs_codes-codetp   = &apos;03&apos;.
+      gs_codes-codeid   = rstran-startroutine.
+      COLLECT gs_codes INTO gt_codes.
+    ENDIF.
+    IF NOT rstran-endroutine IS INITIAL.
+      gs_codes-codetp   = &apos;04&apos;.
+      gs_codes-codeid   = rstran-endroutine.
+      COLLECT gs_codes INTO gt_codes.
+    ENDIF.
+    IF NOT rstran-expert IS INITIAL.
+      gs_codes-codetp   = &apos;99&apos;.
+      gs_codes-codeid   = rstran-expert.
+      COLLECT gs_codes INTO gt_codes.
+    ENDIF.
+
+    SELECT * FROM rstransteprout
+      WHERE tranid =  rstran-tranid
+        AND objvers = rstran-objvers
+      ORDER BY PRIMARY KEY.
+
+      IF NOT rstransteprout-codeid IS INITIAL.
+        gs_codes-codetp   = &apos;00&apos;.
+        gs_codes-ruleid   = rstransteprout-ruleid.
+        gs_codes-codeid   = rstransteprout-codeid.
+        COLLECT gs_codes INTO gt_codes.
+      ENDIF.
+
+    ENDSELECT.
+
+  ENDSELECT.
+
+* Process routines
+  LOOP AT gt_codes INTO gs_codes.
+
+    AT NEW sourcename.
+      FORMAT COLOR COL_HEADING INTENSIFIED ON.
+      WRITE: AT /  icon_biw_rules_act AS ICON, &apos;Source:&apos;,
+             AT 40 gs_codes-sourcename,
+             AT 99 space.
+      SKIP.
+    ENDAT.
+
+    AT NEW targetname.
+      FORMAT COLOR COL_KEY INTENSIFIED ON.
+      WRITE: AT /4 icon_biw_rules_act AS ICON, &apos;Target:&apos;,
+             AT 40 gs_codes-targetname,
+             AT 99 space.
+      SKIP.
+    ENDAT.
+
+    AT NEW codetp.
+      FORMAT COLOR COL_NORMAL INTENSIFIED ON.
+      CASE gs_codes-codetp.
+        WHEN &apos;00&apos;.
+          WRITE: AT /8 icon_abap AS ICON, &apos;Field Routine:&apos;.
+        WHEN &apos;01&apos;.
+          WRITE: AT /8 icon_abap AS ICON, &apos;1st Global Data:&apos;.
+        WHEN &apos;02&apos;.
+          WRITE: AT /8 icon_abap AS ICON, &apos;2nd Global Data:&apos;.
+        WHEN &apos;03&apos;.
+          WRITE: AT /8 icon_abap AS ICON, &apos;Start Routine:&apos;.
+        WHEN &apos;04&apos;.
+          WRITE: AT /8 icon_abap AS ICON, &apos;End Routine:&apos;.
+        WHEN &apos;99&apos;.
+          WRITE: AT /8 icon_abap AS ICON, &apos;Expert Routine:&apos;.
+      ENDCASE.
+      WRITE: AT 99 space.
+      SKIP.
+    ENDAT.
+
+    PERFORM analyze_routine IN PROGRAM zbi_abap_routines_analyze
+      USING gs_codes-codeid p_vers_a p_vers_d p_disp p_anal 8 space.
+
+    AT END OF sourcename.
+      ULINE.
+    ENDAT.
+
+  ENDLOOP.
+
+*&amp;---------------------------------------------------------------------*
+*&amp;      Form  f4_help
+*&amp;---------------------------------------------------------------------*
+FORM f4_help CHANGING c_value TYPE any.
+
+* Check if only one object is selected
+  SORT gt_help_value BY icon value.
+  DESCRIBE TABLE gt_help_value LINES g_count.
+  IF g_count = 0.
+*   No values for this selection
+    MESSAGE i802(dh).
+    EXIT.
+  ELSEIF g_count = 1.
+    READ TABLE gt_help_value INTO gs_help_value INDEX 1.
+    c_value = gs_help_value-value.
+  ELSE.
+*   Call F4 help
+    g_value = c_value.
+    CALL FUNCTION &apos;F4IF_INT_TABLE_VALUE_REQUEST&apos;
+      EXPORTING
+        retfield        = &apos;VALUE&apos;
+        window_title    = &apos;Selection&apos;
+        value           = g_value
+        value_org       = &apos;S&apos;
+      TABLES
+        value_tab       = gt_help_value
+        return_tab      = gt_retval
+      EXCEPTIONS
+        parameter_error = 1
+        no_values_found = 2.
+    CHECK sy-subrc = 0.
+
+    READ TABLE gt_retval INTO gs_retval INDEX 1.
+    IF sy-subrc = 0.
+      c_value = gs_retval-fieldval.
+    ENDIF.
+  ENDIF.
+
+ENDFORM.                                                    &quot;f4_help
+
+*&amp;---------------------------------------------------------------------*
+*&amp;      Form  f4_sname
+*&amp;---------------------------------------------------------------------*
+FORM f4_sname CHANGING c_name LIKE rstran-sourcename.
+
+* Fill help table
+  REFRESH gt_help_value.
+  SELECT * FROM rstran WHERE sourcetype IN s_stype.
+    CLEAR gs_help_value.
+    gs_help_value-value = rstran-sourcename.
+
+    CALL METHOD cl_rso_repository=&gt;get_tlogo_icon
+      EXPORTING
+        i_tlogo = rstran-sourcetype
+      RECEIVING
+        r_icon  = gs_help_value-icon.
+
+    COLLECT gs_help_value INTO gt_help_value.
+  ENDSELECT.
+
+  PERFORM f4_help CHANGING c_name.
+
+ENDFORM.                                                    &quot;f4_sname
+
+*&amp;---------------------------------------------------------------------*
+*&amp;      Form  f4_sname
+*&amp;---------------------------------------------------------------------*
+FORM f4_tname CHANGING c_name LIKE rstran-sourcename.
+
+* Fill help table
+  REFRESH gt_help_value.
+  SELECT * FROM rstran WHERE targettype IN s_ttype.
+    CLEAR gs_help_value.
+    gs_help_value-value = rstran-targetname.
+
+    CALL METHOD cl_rso_repository=&gt;get_tlogo_icon
+      EXPORTING
+        i_tlogo = rstran-targettype
+      RECEIVING
+        r_icon  = gs_help_value-icon.
+
+    COLLECT gs_help_value INTO gt_help_value.
+  ENDSELECT.
+
+  PERFORM f4_help CHANGING c_name.
+
+ENDFORM.                                                    &quot;f4_tname</source>
+ </PROG>
+ <PROG NAME="ZBI_ABAP_ROUTINES_TRANSF_RULES" VARCL="X" SUBC="1" RMAND="100" RLOAD="E" FIXPT="X" UCCHECK="X">
+  <textPool>
+   <language SPRAS="E">
+    <textElement ID="R" ENTRY="Report ZBI_ABAP_ROUTINES_TRANSF_RULES" LENGTH="37 "/>
+   </language>
+  </textPool>
+  <source>************************************************************************
+* ZBI_ABAP_ROUTINES_TRANSF_RULES
+* BI: Analyze ABAP Routines in Transfer Rules
+*
+* (c) SAP AG 2005                                    MFB, SAP Labs, LLC
+* created:     2005-09-01
+* last update: 2008-08-13
+************************************************************************
+* Selection texts:
+* P_ANAL    Highlight ABAP Coding
+* P_DISP    Display ABAP Coding
+* P_VERS_A  Current Version
+* P_VERS_D  Comparison Version
+* S_ISOURC  InfoSource
+* S_LOGSYS  Source system
+* S_OSOURC  DataSource
+************************************************************************
+
+REPORT zbi_abap_routines_transf_rules LINE-SIZE 255.
+
+TYPE-POOLS: icon, rsaa.
+
+TABLES:
+  rsupdinfo,
+  rsisosmap,
+  rstsrules.
+
+SELECTION-SCREEN BEGIN OF BLOCK b1 WITH FRAME.
+SELECT-OPTIONS:
+  s_isourc FOR rsupdinfo-isource,
+  s_osourc FOR rsisosmap-oltpsource,
+  s_logsys FOR rsisosmap-logsys MATCHCODE OBJECT rs_logsys.
+SELECTION-SCREEN END OF BLOCK b1.
+
+SELECTION-SCREEN BEGIN OF BLOCK b2 WITH FRAME.
+PARAMETERS:
+  p_vers_a TYPE rsobjvers DEFAULT &apos;A&apos;,
+  p_vers_d TYPE rsobjvers DEFAULT &apos;D&apos;,
+  p_disp   AS CHECKBOX    DEFAULT &apos;X&apos;,
+  p_anal   AS CHECKBOX    DEFAULT space.
+SELECTION-SCREEN END OF BLOCK b2.
+
+TYPES:
+  BEGIN OF ys_codes,
+    isource  LIKE rsisosmap-isource,
+    osource  LIKE rsisosmap-oltpsource,
+    logsys   LIKE rsisosmap-logsys,
+    iobjnm   LIKE rstsrules-iobjnm,
+    codeid   LIKE rstsrules-convrout_l,
+  END OF ys_codes,
+  yt_codes TYPE SORTED TABLE OF ys_codes WITH UNIQUE DEFAULT KEY.
+
+DATA:
+  g_indent TYPE i,
+  gs_codes TYPE ys_codes,
+  gt_codes TYPE yt_codes.
+
+START-OF-SELECTION.
+
+* Read transfer rules with ABAP routines
+  SELECT * FROM rsisosmap
+    WHERE oltpsource IN s_osourc
+      AND logsys     IN s_logsys
+      AND isource    IN s_isourc
+      AND objvers    =  p_vers_a
+      AND transtru   &lt;&gt; &apos; &apos;.
+
+    SELECT * FROM rstsrules
+      WHERE transtru   = rsisosmap-transtru
+        AND objvers    =  p_vers_a
+        AND convrout_l &lt;&gt; &apos; &apos;.
+
+      CLEAR gs_codes.
+      gs_codes-isource  = rsisosmap-isource.
+      gs_codes-osource  = rsisosmap-oltpsource.
+      gs_codes-logsys   = rsisosmap-logsys.
+      gs_codes-iobjnm   = rstsrules-iobjnm.
+      gs_codes-codeid   = rstsrules-convrout_l.
+      COLLECT gs_codes INTO gt_codes.
+
+    ENDSELECT.
+
+  ENDSELECT.
+
+* Process routines
+  LOOP AT gt_codes INTO gs_codes.
+
+    AT NEW isource.
+      FORMAT COLOR COL_HEADING INTENSIFIED ON.
+      WRITE: AT /  icon_biw_info_source AS ICON, &apos;InfoSource:&apos;,
+             AT 40 gs_codes-isource,
+             AT 99 space.
+      SKIP.
+    ENDAT.
+
+    AT NEW osource.
+      FORMAT COLOR COL_KEY INTENSIFIED ON.
+      WRITE: AT /4 icon_bw_datasource AS ICON, &apos;DataSource:&apos;,
+             AT 40 gs_codes-osource,
+             AT 99 space.
+      SKIP.
+    ENDAT.
+
+    AT NEW logsys.
+      FORMAT COLOR COL_HEADING INTENSIFIED OFF.
+      WRITE: AT /8 icon_biw_source_sys_gen AS ICON, &apos;Source System:&apos;,
+             AT 40 gs_codes-logsys,
+             AT 99 space.
+      SKIP.
+      g_indent = 12.
+    ENDAT.
+
+    AT NEW iobjnm.
+      IF NOT gs_codes-iobjnm IS INITIAL.
+        FORMAT COLOR COL_KEY INTENSIFIED OFF.
+        WRITE: AT /12 icon_biw_info_object_catalogue AS ICON,
+                      &apos;InfoObject:&apos;,
+               AT 40 gs_codes-iobjnm,
+               AT 99 space.
+        SKIP.
+        g_indent = g_indent + 4.
+      ENDIF.
+    ENDAT.
+
+    PERFORM analyze_routine IN PROGRAM zbi_abap_routines_analyze
+      USING gs_codes-codeid p_vers_a p_vers_d p_disp p_anal g_indent &apos;X&apos;.
+
+    AT END OF isource.
+      ULINE.
+    ENDAT.
+
+  ENDLOOP.</source>
+ </PROG>
+ <PROG NAME="ZBI_ABAP_ROUTINES_UPDATE_RULES" VARCL="X" SUBC="1" RMAND="100" RLOAD="E" FIXPT="X" UCCHECK="X">
+  <textPool>
+   <language SPRAS="E">
+    <textElement ID="R" ENTRY="Report ZBI_ABAP_ROUTINES_UPDATE_RULES" LENGTH="37 "/>
+   </language>
+  </textPool>
+  <source>************************************************************************
+* ZBI_ABAP_ROUTINES_UPDATE_RULES
+* BI: Analyze ABAP Routines in Update Rules
+*
+* (c) SAP AG 2005                                    MFB, SAP Labs, LLC
+* created:     2005-09-01
+* last update: 2008-04-11
+************************************************************************
+* Selection texts:
+* P_ANAL    Highlight ABAP Coding
+* P_DISP    Display ABAP Coding
+* P_VERS_A  Current Version
+* P_VERS_D  Comparison Version
+* SO_CUBE   InfoCube
+* SO_SOURC  InfoSource
+************************************************************************
+
+REPORT zbi_abap_routines_update_rules LINE-SIZE 255.
+
+TYPE-POOLS: icon, rsaa.
+
+TABLES:
+  rsupdinfo,
+  rsupdrout.
+
+SELECTION-SCREEN BEGIN OF BLOCK b1 WITH FRAME.
+SELECT-OPTIONS:
+  so_cube  FOR rsupdinfo-infocube MEMORY ID rsi,
+  so_sourc FOR rsupdinfo-isource.
+SELECTION-SCREEN END OF BLOCK b1.
+
+SELECTION-SCREEN BEGIN OF BLOCK b2 WITH FRAME.
+PARAMETERS:
+  p_vers_a TYPE rsobjvers DEFAULT &apos;A&apos;,
+  p_vers_d TYPE rsobjvers DEFAULT &apos;D&apos;,
+  p_disp   AS CHECKBOX    DEFAULT &apos;X&apos;,
+  p_anal   AS CHECKBOX    DEFAULT space.
+SELECTION-SCREEN END OF BLOCK b2.
+
+TYPES:
+  BEGIN OF ys_codes,
+    infocube   LIKE rsupdinfo-infocube,
+    isource    LIKE rsupdinfo-isource,
+    iobjnm     LIKE rsupdrout-iciobjnm,
+    codeid     LIKE rsupdrout-codeid,
+  END OF ys_codes,
+  yt_codes TYPE SORTED TABLE OF ys_codes WITH UNIQUE DEFAULT KEY.
+
+DATA:
+  g_indent TYPE i,
+  gs_codes TYPE ys_codes,
+  gt_codes TYPE yt_codes.
+
+START-OF-SELECTION.
+
+* Read update rules with ABAP routines
+  SELECT * FROM rsupdinfo
+    WHERE objvers  =  p_vers_a
+      AND infocube IN so_cube
+      AND isource  IN so_sourc.
+
+    SELECT * FROM rsupdrout WHERE updid = rsupdinfo-updid.
+
+      CLEAR gs_codes.
+      gs_codes-infocube = rsupdinfo-infocube.
+      gs_codes-isource  = rsupdinfo-isource.
+      gs_codes-iobjnm   = rsupdrout-iciobjnm.
+      gs_codes-codeid   = rsupdrout-codeid.
+      COLLECT gs_codes INTO gt_codes.
+
+    ENDSELECT.
+
+  ENDSELECT.
+
+* Process routines
+  LOOP AT gt_codes INTO gs_codes.
+
+    AT NEW infocube.
+      FORMAT COLOR COL_HEADING INTENSIFIED ON.
+      WRITE: AT /  icon_biw_info_cube AS ICON, &apos;InfoCube:&apos;,
+             AT 40 gs_codes-infocube,
+             AT 99 space.
+      SKIP.
+    ENDAT.
+
+    AT NEW isource.
+      FORMAT COLOR COL_KEY INTENSIFIED ON.
+      WRITE: AT /4 icon_biw_rules_act AS ICON, &apos;Update Rules:&apos;,
+             AT 40 gs_codes-isource,
+             AT 99 space.
+      SKIP.
+      g_indent = 8.
+    ENDAT.
+
+    AT NEW iobjnm.
+      IF NOT gs_codes-iobjnm IS INITIAL.
+        FORMAT COLOR COL_HEADING INTENSIFIED OFF.
+        WRITE: AT /8 icon_biw_info_object_catalogue AS ICON,
+                     &apos;InfoObject:&apos;,
+               AT 40 gs_codes-iobjnm,
+               AT 99 space.
+        SKIP.
+        g_indent = g_indent + 4.
+      ENDIF.
+    ENDAT.
+
+    PERFORM analyze_routine IN PROGRAM zbi_abap_routines_analyze
+      USING gs_codes-codeid p_vers_a p_vers_d p_disp p_anal g_indent &apos;X&apos;.
+
+    AT END OF isource.
+      ULINE.
+    ENDAT.
+
+  ENDLOOP.</source>
+ </PROG>
+</nugget>
