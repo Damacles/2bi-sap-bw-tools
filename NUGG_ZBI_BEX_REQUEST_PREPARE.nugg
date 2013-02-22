@@ -1,0 +1,377 @@
+<?xml version="1.0" encoding="utf-16"?>
+<nugget name="ZBI_CLEAN_BEX_TRANSP_REQST">
+ <TRAN TCODE="ZTR_OBJ_DEL" PGMNA="RS_DELETE_KEY_IN_TRANSPORT2" DYPNO="1000" CINFO="80">
+  <tstct SPRSL="E" TCODE="ZTR_OBJ_DEL" TTEXT="Run Program RS_DELETE_KEY_IN_TRANSPO"/>
+  <tstcc TCODE="ZTR_OBJ_DEL"/>
+  <tstcp/>
+  <rsstcd ST_PROG="X" DEVCLASS="$TMP"/>
+ </TRAN>
+ <TRAN TCODE="ZTR_UNLOCK" PGMNA="ZSE03_UNLOCK_REQUEST" DYPNO="1000" CINFO="80">
+  <tstct SPRSL="E" TCODE="ZTR_UNLOCK" TTEXT="ZTR_UNLOCK"/>
+  <tstcc TCODE="ZTR_UNLOCK"/>
+  <tstcp/>
+  <rsstcd ST_PROG="X" DEVCLASS="$TMP"/>
+ </TRAN>
+ <PROG NAME="ZSE03_UNLOCK_REQUEST" VARCL="X" SUBC="1" CNAM="EXC060" CDAT="20130222" UNAM="EXC060" UDAT="20130222" VERN="000012" RMAND="001" RLOAD="E" FIXPT="X" SDATE="20130222" STIME="092715" IDATE="20130222" ITIME="092715" UCCHECK="X">
+  <textPool>
+   <language SPRAS="E">
+    <textElement ID="R" ENTRY="Program ZSE03_UNLOCK_REQUEST" LENGTH="28 "/>
+   </language>
+  </textPool>
+  <source>REPORT  ZSE03_UNLOCK_REQUEST.
+
+DATA:
+      rspar_tab  TYPE TABLE OF rsparams,
+      rspar_line LIKE LINE OF rspar_tab.
+
+parameters s_rqst type e070-trkorr.
+
+
+rspar_line-selname = &apos;TRKORR&apos;.
+rspar_line-kind    = &apos;P&apos;.
+rspar_line-sign    = &apos;I&apos;.
+rspar_line-option  = &apos;EQ&apos;.
+rspar_line-low     = s_rqst.
+APPEND rspar_line TO rspar_tab.
+
+submit rswbO099
+  WITH SELECTION-TABLE rspar_tab
+  AND RETURN.
+return.</source>
+ </PROG>
+ <FUGR AREA="Z_TRANSPORT_REQUEST_UNLOCK" SPRAS="E" AREAT="Z_TRANSPORT_REQUEST_UNLOCK">
+  <functionGroupDocumentation/>
+  <mainprogram NAME="SAPLZ_TRANSPORT_REQUEST_UNLOCK" VARCL="X" DBAPL="S" DBNA="D$" SUBC="F" APPL="S" CNAM="EXC060" CDAT="20130222" UNAM="EXC060" UDAT="20130222" VERN="000002" RMAND="001" RLOAD="E" FIXPT="X" SDATE="20130222" STIME="132906" IDATE="20130222" ITIME="100410" LDBNAME="D$S" UCCHECK="X">
+   <textPool/>
+   <source>*******************************************************************
+*   System-defined Include-files.                                 *
+*******************************************************************
+  INCLUDE LZ_TRANSPORT_REQUEST_UNLOCKTOP.    &quot; Global Data
+  INCLUDE LZ_TRANSPORT_REQUEST_UNLOCKUXX.    &quot; Function Modules
+
+*******************************************************************
+*   User-defined Include-files (if necessary).                    *
+*******************************************************************
+* INCLUDE LZ_TRANSPORT_REQUEST_UNLOCKF...    &quot; Subroutines
+* INCLUDE LZ_TRANSPORT_REQUEST_UNLOCKO...    &quot; PBO-Modules
+* INCLUDE LZ_TRANSPORT_REQUEST_UNLOCKI...    &quot; PAI-Modules
+* INCLUDE LZ_TRANSPORT_REQUEST_UNLOCKE...    &quot; Events
+* INCLUDE LZ_TRANSPORT_REQUEST_UNLOCKP...    &quot; Local class implement.</source>
+  </mainprogram>
+  <includeprograms>
+   <include NAME="LZ_TRANSPORT_REQUEST_UNLOCKTOP" VARCL="X" DBAPL="S" DBNA="D$" SUBC="I" APPL="S" CNAM="EXC060" CDAT="20130222" UNAM="EXC060" UDAT="20130222" VERN="000002" RMAND="001" FIXPT="X" SDATE="20130222" STIME="100410" IDATE="20130222" ITIME="100410" LDBNAME="D$S" UCCHECK="X">
+    <include_source>FUNCTION-POOL Z_TRANSPORT_REQUEST_UNLOCK.   &quot;MESSAGE-ID ..
+
+* INCLUDE LZ_TRANSPORT_REQUEST_UNLOCKD...    &quot; Local class definition</include_source>
+   </include>
+  </includeprograms>
+  <functionmodules>
+   <functionmodule NAME="Z_TRANSPORT_REQUEST_UNLOCK" REMOTE="R" STEXT="Z_TRANSPORT_REQUEST_UNLOCK">
+    <importing PARAMETER="CTU" DBFIELD="APQI-PUTACTIVE" DEFAULT="&apos;X&apos;" OPTIONAL="X"/>
+    <importing PARAMETER="MODE" DBFIELD="APQI-PUTACTIVE" DEFAULT="&apos;N&apos;" OPTIONAL="X"/>
+    <importing PARAMETER="UPDATE" DBFIELD="APQI-PUTACTIVE" DEFAULT="&apos;L&apos;" OPTIONAL="X"/>
+    <importing PARAMETER="GROUP" DBFIELD="APQI-GROUPID" OPTIONAL="X"/>
+    <importing PARAMETER="USER" DBFIELD="APQI-USERID" OPTIONAL="X"/>
+    <importing PARAMETER="KEEP" DBFIELD="APQI-QERASE" OPTIONAL="X"/>
+    <importing PARAMETER="HOLDDATE" DBFIELD="APQI-STARTDATE" OPTIONAL="X"/>
+    <importing PARAMETER="NODATA" DBFIELD="APQI-PUTACTIVE" DEFAULT="&apos;/&apos;" OPTIONAL="X"/>
+    <importing PARAMETER="S_RQST_001" DEFAULT="&apos;BIDK908680&apos;" TYP="TRKORR"/>
+    <exporting PARAMETER="SUBRC" DBFIELD="SYST-SUBRC"/>
+    <tables PARAMETER="MESSTAB" DBSTRUCT="BDCMSGCOLL" OPTIONAL="X"/>
+    <documentation PARAMETER="CTU" KIND="P" INDEX=" 001"/>
+    <documentation PARAMETER="MODE" KIND="P" INDEX=" 002"/>
+    <documentation PARAMETER="UPDATE" KIND="P" INDEX=" 003"/>
+    <documentation PARAMETER="GROUP" KIND="P" INDEX=" 004"/>
+    <documentation PARAMETER="USER" KIND="P" INDEX=" 005"/>
+    <documentation PARAMETER="KEEP" KIND="P" INDEX=" 006"/>
+    <documentation PARAMETER="HOLDDATE" KIND="P" INDEX=" 007"/>
+    <documentation PARAMETER="NODATA" KIND="P" INDEX=" 008"/>
+    <documentation PARAMETER="S_RQST_001" KIND="P" STEXT="Request/Task" INDEX=" 009"/>
+    <documentation PARAMETER="SUBRC" KIND="P" INDEX=" 010"/>
+    <documentation PARAMETER="MESSTAB" KIND="P" INDEX=" 011"/>
+    <fm_source>data:
+      l_rqst_1 type BDCDATA-FVAL.
+
+subrc = 0.
+
+l_rqst_1 = S_RQST_001.
+
+perform bdc_nodata      using NODATA.
+
+perform open_group      using GROUP USER KEEP HOLDDATE CTU.
+
+perform bdc_dynpro      using &apos;ZSE03_UNLOCK_REQUEST&apos; &apos;1000&apos;.
+perform bdc_field       using &apos;BDC_CURSOR&apos;
+                              &apos;S_RQST&apos;.
+perform bdc_field       using &apos;BDC_OKCODE&apos;
+                              &apos;=ONLI&apos;.
+perform bdc_field       using &apos;S_RQST&apos;
+                              l_rqst_1.
+perform bdc_dynpro      using &apos;SAPLSPO2&apos; &apos;0301&apos;.
+perform bdc_field       using &apos;BDC_OKCODE&apos;
+                              &apos;=OPT1&apos;.
+perform bdc_dynpro      using &apos;ZSE03_UNLOCK_REQUEST&apos; &apos;1000&apos;.
+perform bdc_field       using &apos;BDC_OKCODE&apos;
+                              &apos;/EE&apos;.
+perform bdc_field       using &apos;BDC_CURSOR&apos;
+                              &apos;S_RQST&apos;.
+perform bdc_transaction tables messtab
+using                         &apos;ZTR_UNLOCK&apos;
+                              CTU
+                              MODE
+                              UPDATE.
+if sy-subrc &lt;&gt; 0.
+  subrc = sy-subrc.
+  exit.
+endif.
+
+perform close_group using     CTU.
+
+
+
+
+
+INCLUDE BDCRECXY .</fm_source>
+    <functionModuleDocumentation/>
+   </functionmodule>
+  </functionmodules>
+ </FUGR>
+ <FUGR AREA="Z_TRANSPORT_REQST_OBJ_DEL" SPRAS="E" AREAT="Z_TRANSPORT_REQST_OBJ_DEL">
+  <functionGroupDocumentation/>
+  <mainprogram NAME="SAPLZ_TRANSPORT_REQST_OBJ_DEL" VARCL="X" DBAPL="S" DBNA="D$" SUBC="F" APPL="S" CNAM="EXC060" CDAT="20130222" UNAM="EXC060" UDAT="20130222" VERN="000002" RMAND="001" RLOAD="E" FIXPT="X" SDATE="20130222" STIME="104211" IDATE="20130222" ITIME="104012" LDBNAME="D$S" UCCHECK="X">
+   <textPool/>
+   <source>*******************************************************************
+*   System-defined Include-files.                                 *
+*******************************************************************
+  INCLUDE LZ_TRANSPORT_REQST_OBJ_DELTOP.     &quot; Global Data
+  INCLUDE LZ_TRANSPORT_REQST_OBJ_DELUXX.     &quot; Function Modules
+
+*******************************************************************
+*   User-defined Include-files (if necessary).                    *
+*******************************************************************
+* INCLUDE LZ_TRANSPORT_REQST_OBJ_DELF...     &quot; Subroutines
+* INCLUDE LZ_TRANSPORT_REQST_OBJ_DELO...     &quot; PBO-Modules
+* INCLUDE LZ_TRANSPORT_REQST_OBJ_DELI...     &quot; PAI-Modules
+* INCLUDE LZ_TRANSPORT_REQST_OBJ_DELE...     &quot; Events
+* INCLUDE LZ_TRANSPORT_REQST_OBJ_DELP...     &quot; Local class implement.</source>
+  </mainprogram>
+  <includeprograms>
+   <include NAME="LZ_TRANSPORT_REQST_OBJ_DELTOP" DBAPL="S" DBNA="D$" SUBC="I" APPL="S" CNAM="EXC060" CDAT="20130222" UNAM="EXC060" UDAT="20130222" VERN="000002" RMAND="001" FIXPT="X" SDATE="20130222" STIME="104012" IDATE="20130222" ITIME="104012" LDBNAME="D$S" UCCHECK="X">
+    <include_source>FUNCTION-POOL Z_TRANSPORT_REQST_OBJ_DEL.    &quot;MESSAGE-ID ..
+
+* INCLUDE LZ_TRANSPORT_REQST_OBJ_DELD...     &quot; Local class definition</include_source>
+   </include>
+  </includeprograms>
+  <functionmodules>
+   <functionmodule NAME="Z_TRANSPORT_REQST_OBJ_DEL" REMOTE="R" STEXT="Z_TRANSPORT_REQST_OBJ_DEL">
+    <importing PARAMETER="CTU" DBFIELD="APQI-PUTACTIVE" DEFAULT="&apos;X&apos;" OPTIONAL="X"/>
+    <importing PARAMETER="MODE" DBFIELD="APQI-PUTACTIVE" DEFAULT="&apos;N&apos;" OPTIONAL="X"/>
+    <importing PARAMETER="UPDATE" DBFIELD="APQI-PUTACTIVE" DEFAULT="&apos;L&apos;" OPTIONAL="X"/>
+    <importing PARAMETER="GROUP" DBFIELD="APQI-GROUPID" OPTIONAL="X"/>
+    <importing PARAMETER="USER" DBFIELD="APQI-USERID" OPTIONAL="X"/>
+    <importing PARAMETER="KEEP" DBFIELD="APQI-QERASE" OPTIONAL="X"/>
+    <importing PARAMETER="HOLDDATE" DBFIELD="APQI-STARTDATE" OPTIONAL="X"/>
+    <importing PARAMETER="NODATA" DBFIELD="APQI-PUTACTIVE" DEFAULT="&apos;/&apos;" OPTIONAL="X"/>
+    <importing PARAMETER="P_TRKORR_001" DEFAULT="&apos;BIDK909863&apos;" TYP="TRKORR"/>
+    <exporting PARAMETER="SUBRC" DBFIELD="SYST-SUBRC"/>
+    <tables PARAMETER="MESSTAB" DBSTRUCT="BDCMSGCOLL" OPTIONAL="X"/>
+    <documentation PARAMETER="CTU" KIND="P" INDEX=" 001"/>
+    <documentation PARAMETER="MODE" KIND="P" INDEX=" 002"/>
+    <documentation PARAMETER="UPDATE" KIND="P" INDEX=" 003"/>
+    <documentation PARAMETER="GROUP" KIND="P" INDEX=" 004"/>
+    <documentation PARAMETER="USER" KIND="P" INDEX=" 005"/>
+    <documentation PARAMETER="KEEP" KIND="P" INDEX=" 006"/>
+    <documentation PARAMETER="HOLDDATE" KIND="P" INDEX=" 007"/>
+    <documentation PARAMETER="NODATA" KIND="P" INDEX=" 008"/>
+    <documentation PARAMETER="P_TRKORR_001" KIND="P" STEXT="Request/Task" INDEX=" 009"/>
+    <documentation PARAMETER="SUBRC" KIND="P" INDEX=" 010"/>
+    <documentation PARAMETER="MESSTAB" KIND="P" INDEX=" 011"/>
+    <fm_source>subrc = 0.
+
+data: l_trkorr_fval type   BDCDATA-FVAL.
+
+l_trkorr_fval = p_trkorr_001.
+
+perform bdc_nodata      using NODATA.
+
+perform open_group      using GROUP USER KEEP HOLDDATE CTU.
+
+perform bdc_dynpro      using &apos;RS_DELETE_KEY_IN_TRANSPORT2&apos; &apos;1000&apos;.
+perform bdc_field       using &apos;BDC_CURSOR&apos;
+                              &apos;P_TRKORR&apos;.
+perform bdc_field       using &apos;BDC_OKCODE&apos;
+                              &apos;=ONLI&apos;.
+perform bdc_field       using &apos;P_TRKORR&apos;
+                              l_trkorr_fval.
+perform bdc_dynpro      using &apos;SAPLSPO1&apos; &apos;0500&apos;.
+perform bdc_field       using &apos;BDC_OKCODE&apos;
+                              &apos;=OPT1&apos;.
+perform bdc_dynpro      using &apos;SAPMSSY0&apos; &apos;0120&apos;.
+perform bdc_field       using &apos;BDC_OKCODE&apos;
+                              &apos;=BACK&apos;.
+perform bdc_dynpro      using &apos;RS_DELETE_KEY_IN_TRANSPORT2&apos; &apos;1000&apos;.
+perform bdc_field       using &apos;BDC_OKCODE&apos;
+                              &apos;/EE&apos;.
+perform bdc_field       using &apos;BDC_CURSOR&apos;
+                              &apos;P_TRKORR&apos;.
+perform bdc_transaction tables messtab
+using                         &apos;ZTR_OBJ_DEL&apos;
+                              CTU
+                              MODE
+                              UPDATE.
+if sy-subrc &lt;&gt; 0.
+  subrc = sy-subrc.
+  exit.
+endif.
+
+perform close_group using     CTU.
+
+
+
+
+
+INCLUDE BDCRECXY .</fm_source>
+    <functionModuleDocumentation/>
+   </functionmodule>
+  </functionmodules>
+ </FUGR>
+ <PROG NAME="ZBI_BEX_REQUEST_PREPARE" VARCL="X" SUBC="1" CNAM="EXC060" CDAT="20130222" UNAM="EXC060" UDAT="20130222" VERN="000011" RMAND="001" RLOAD="E" FIXPT="X" SDATE="20130222" STIME="134038" IDATE="20130222" ITIME="134038" UCCHECK="X">
+  <textPool>
+   <language SPRAS="E">
+    <textElement ID="R" ENTRY="Unlock and Clear Standard BEx Transport Request" LENGTH="47 "/>
+   </language>
+  </textPool>
+  <source>*&amp;---------------------------------------------------------------------*
+*&amp; Report  ZBI_BEX_REQUEST_PREPARE
+*&amp;
+*&amp;---------------------------------------------------------------------*
+*&amp;
+*&amp;
+*&amp;---------------------------------------------------------------------*
+
+REPORT  zbi_bex_request_prepare.
+
+&quot; Determine the BEX Transport request via RSADMINA-BEX_REQUEST.
+&quot; Check if none available and exit
+&quot; Fill lt_requests table with request + subrequests
+
+&quot; Loop over lt_requests
+&quot;  Call FM to unlock
+&quot;  Report any errors
+&quot;  Delete all objects in request
+&quot;  Report anu errors
+
+&quot; Display error log
+
+DATA:
+      l_success TYPE flag VALUE &apos;X&apos;,
+      ls_messtab TYPE bdcmsgcoll,
+      lt_messtab TYPE TABLE OF bdcmsgcoll,
+      l_subrc TYPE sy-subrc,
+      ls_e070 TYPE e070,
+      lt_e070 TYPE TABLE OF e070,
+      l_bex_request TYPE rsadmina-bex_request.
+
+SELECT SINGLE bex_request FROM rsadmina
+  INTO l_bex_request
+  WHERE customizid = &apos;BW&apos;.
+
+IF l_bex_request IS INITIAL.
+  &quot;Log error and return
+  RETURN.
+ENDIF.
+
+
+
+SELECT * FROM e070 INTO TABLE lt_e070
+  WHERE strkorr = l_bex_request.
+
+SELECT SINGLE * FROM e070 INTO ls_e070
+  WHERE trkorr = l_bex_request.
+
+APPEND ls_e070 TO lt_e070.
+
+LOOP AT lt_e070 INTO ls_e070.
+  CALL FUNCTION &apos;Z_TRANSPORT_REQUEST_UNLOCK&apos;
+    EXPORTING
+*     CTU        = &apos;X&apos;
+*     MODE       = &apos;N&apos;
+*     UPDATE     = &apos;L&apos;
+*     GROUP      =
+*     USER       =
+*     KEEP       =
+*     HOLDDATE   =
+*     NODATA     = &apos;/&apos;
+      s_rqst_001 = ls_e070-trkorr
+    IMPORTING
+      subrc      = l_subrc
+    TABLES
+      messtab    = lt_messtab.
+  IF sy-subrc &lt;&gt; 0.
+    CLEAR l_success.
+    WRITE  :  &apos;subrc:&apos;.
+    WRITE /:  l_subrc.
+    SKIP.
+  ENDIF.
+  LOOP AT lt_messtab INTO ls_messtab.
+    IF ls_messtab-msgtyp CA &apos;WEA&apos;.
+      CLEAR l_success.
+      WRITE /:  ls_messtab-msgtyp,
+                ls_messtab-msgid,
+                ls_messtab-msgnr,
+                ls_messtab-msgv1,
+                ls_messtab-msgv2,
+                ls_messtab-msgv3,
+                ls_messtab-msgv4.
+      SKIP.
+    ENDIF.
+  ENDLOOP.
+ENDLOOP.
+IF l_success IS NOT INITIAL.
+  WRITE :&apos;BEx Transport Request &apos;,
+        l_bex_request, &apos;and all subrequests unlocked Successfully&apos;.
+  SKIP.
+ENDIF.
+
+LOOP AT lt_e070 INTO ls_e070.
+  CALL FUNCTION &apos;Z_TRANSPORT_REQST_OBJ_DEL&apos;
+    EXPORTING
+*     CTU          = &apos;X&apos;
+*     MODE         = &apos;N&apos;
+*     UPDATE       = &apos;L&apos;
+*     GROUP        =
+*     USER         =
+*     KEEP         =
+*     HOLDDATE     =
+*     NODATA       = &apos;/&apos;
+      p_trkorr_001 = ls_e070-trkorr
+    IMPORTING
+      subrc        = l_subrc
+    TABLES
+      messtab      = lt_messtab.
+  IF sy-subrc &lt;&gt; 0.
+    CLEAR l_success.
+    WRITE  :  &apos;subrc:&apos;.
+    WRITE /:  l_subrc.
+    SKIP.
+  ENDIF.
+  LOOP AT lt_messtab INTO ls_messtab.
+    IF ls_messtab-msgtyp CA &apos;WEA&apos;.
+      CLEAR l_success.
+      WRITE /:  ls_messtab-msgtyp,
+                ls_messtab-msgid,
+                ls_messtab-msgnr,
+                ls_messtab-msgv1,
+                ls_messtab-msgv2,
+                ls_messtab-msgv3,
+                ls_messtab-msgv4.
+      SKIP.
+    ENDIF.
+  ENDLOOP.
+ENDLOOP.
+IF l_success IS NOT INITIAL.
+  WRITE :&apos;Objects successfully cleared from BEx Transport Request &apos;,
+        l_bex_request, &apos;and all subrequests&apos;.
+ENDIF.</source>
+ </PROG>
+</nugget>
