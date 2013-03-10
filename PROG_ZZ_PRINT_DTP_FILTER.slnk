@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-16"?>
+<PROG NAME="ZZ_PRINT_DTP_FILTER" VARCL="X" SUBC="1" CNAM="EXC060" CDAT="20130220" UNAM="EXC060" UDAT="20130220" VERN="000012" RMAND="001" RLOAD="E" FIXPT="X" SDATE="20130220" STIME="125153" IDATE="20130220" ITIME="125153" UCCHECK="X">
+ <textPool>
+  <language SPRAS="E">
+   <textElement ID="R" ENTRY="Program ZZ_PRINT_DTP_FILTER" LENGTH="27 "/>
+  </language>
+ </textPool>
+ <source>REPORT  zz_print_dtp_filter.
+
+
+PARAMETERS: request            TYPE RSREQUNR DEFAULT &apos;DTPR_4B67BH1XA4LG7NMQDUCVWAFG7&apos;.
+
+
+DATA:
+  l_r_rsbk_dtp                      TYPE REF TO cl_rsbk_dtp,
+  l_r_rsbc_filter                   TYPE REF TO cl_rsbc_filter,
+  l_r_rsbk_dtp_a                    TYPE REF TO cl_rsbk_dtp_a,
+  l_s_rsbk_select                   TYPE rsbk_s_select,
+  l_v_logdpid                       TYPE rslogdpid.
+
+
+START-OF-SELECTION.
+  SELECT SINGLE r~logdpid INTO l_v_logdpid
+       FROM rsreqdone AS r
+*         INNER JOIN rsbkdtpt AS t
+*            ON t~dtp = r~logdpid
+       WHERE r~rnr = request.
+*       AND t~langu = sy-langu.
+
+
+* Factory method to create DTP Object
+  l_r_rsbk_dtp = cl_rsbk_dtp=&gt;factory( l_v_logdpid ).
+
+* Get object reference to active version
+  l_r_rsbk_dtp_a ?= l_r_rsbk_dtp-&gt;get_obj_ref_objvers( rs_c_objvers-active ).
+
+* Get reference to DTP&apos;s filter object
+  CALL METHOD l_r_rsbk_dtp_a-&gt;if_rsbk_dtp_display~get_obj_ref_filter
+    RECEIVING
+      r_r_filter = l_r_rsbc_filter.
+
+* Print filter criteria
+  LOOP AT l_r_rsbc_filter-&gt;n_t_seltab INTO l_s_rsbk_select.
+    WRITE /: l_s_rsbk_select-field,
+             l_s_rsbk_select-sign,
+             l_s_rsbk_select-option,
+             l_s_rsbk_select-low,
+             l_s_rsbk_select-high,
+             l_s_rsbk_select-sel_type.
+    SKIP.
+  ENDLOOP.</source>
+</PROG>
