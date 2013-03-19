@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="utf-16"?>
+<nugget name="ZREFX_CONTRACT_NOTICE_LIST">
+ <FUGR SPRAS="E" AREA="ZREFX_NOTICES" AREAT="ZREFX_NOTICES">
+  <mainprogram NAME="SAPLZREFX_NOTICES" VARCL="X" DBAPL="S" DBNA="D$" SUBC="F" APPL="S" CNAM="CCIA" CDAT="20130319" UNAM="CCIA" UDAT="20130319" VERN="000002" RMAND="200" RLOAD="E" FIXPT="X" SDATE="20130319" STIME="100622" IDATE="20130319" ITIME="090956" LDBNAME="D$S" UCCHECK="X">
+   <textPool/>
+   <source>*******************************************************************
+*   System-defined Include-files.                                 *
+*******************************************************************
+  INCLUDE LZREFX_NOTICESTOP.                 &quot; Global Data
+  INCLUDE LZREFX_NOTICESUXX.                 &quot; Function Modules
+
+*******************************************************************
+*   User-defined Include-files (if necessary).                    *
+*******************************************************************
+* INCLUDE LZREFX_NOTICESF...                 &quot; Subroutines
+* INCLUDE LZREFX_NOTICESO...                 &quot; PBO-Modules
+* INCLUDE LZREFX_NOTICESI...                 &quot; PAI-Modules
+* INCLUDE LZREFX_NOTICESE...                 &quot; Events
+* INCLUDE LZREFX_NOTICESP...                 &quot; Local class implement.</source>
+  </mainprogram>
+  <includeprograms>
+   <include NAME="LZREFX_NOTICESTOP" DBAPL="S" DBNA="D$" SUBC="I" APPL="S" CNAM="CCIA" CDAT="20130319" UNAM="CCIA" UDAT="20130319" VERN="000002" RMAND="200" FIXPT="X" SDATE="20130319" STIME="090956" IDATE="20130319" ITIME="090956" LDBNAME="D$S" UCCHECK="X">
+    <include_source>FUNCTION-POOL ZREFX_NOTICES.                &quot;MESSAGE-ID ..
+
+* INCLUDE LZREFX_NOTICESD...                 &quot; Local class definition</include_source>
+   </include>
+  </includeprograms>
+  <functionmodules>
+   <functionmodule NAME="ZREFX_CNT_NOTICE_GET_LIST" STEXT="ZREFX_CNT_NOTICE_GET_LIST">
+    <importing PARAMETER="I_RECNNR" REFERENCE="X" TYP="RECNNUMBER"/>
+    <importing PARAMETER="I_BUKRS" REFERENCE="X" TYP="BUKRS"/>
+    <importing PARAMETER="I_LANDLORD" DEFAULT="&apos;1&apos;" REFERENCE="X" TYP="FLAG"/>
+    <exporting PARAMETER="ET_NTSIM" REFERENCE="X" TYP="RE_T_NOTICE_SIM"/>
+    <exceptions EXCEPTION="NOT_FOUND"/>
+    <documentation PARAMETER="I_RECNNR" KIND="P" STEXT="Contract Number" INDEX=" 001"/>
+    <documentation PARAMETER="I_BUKRS" KIND="P" STEXT="Company Code" INDEX=" 002"/>
+    <documentation PARAMETER="I_LANDLORD" KIND="P" STEXT="Party Giving Notice in Notice Procedure" INDEX=" 003"/>
+    <documentation PARAMETER="ET_NTSIM" KIND="P" STEXT="Simulation of Notice Rule" INDEX=" 004"/>
+    <documentation PARAMETER="NOT_FOUND" KIND="X" STEXT="No notice found" INDEX=" 005"/>
+    <fm_source_new>DATA:
+    lo_notice_obj_mngr   TYPE REF TO if_retm_specific_term_mngr,
+    lt_contract     TYPE re_t_contract,
+    lo_notice_mngr  TYPE REF TO if_retm_notice_mngr,
+    lo_notice_proc_mngr   TYPE REF TO if_retm_notice_proc_mngr,
+    ls_contract     TYPE recn_contract,
+    lo_contract     TYPE REF TO if_recn_contract.
+
+  &quot; Setup a if_recn_contract object reference
+  &quot; See FORM recontract_package_get in INCLUDE LREIS_MASTERDATA_EXTRACTIONF01
+  SELECT SINGLE * FROM vicncn INTO CORRESPONDING FIELDS OF ls_contract
+    WHERE bukrs = i_bukrs
+      AND recnnr = i_recnnr.
+
+*     get object
+  CALL METHOD cf_recn_contract=&gt;find_by_detail
+    EXPORTING
+      is_detail   = ls_contract
+    RECEIVING
+      ro_instance = lo_contract
+    EXCEPTIONS
+      OTHERS      = 0.
+
+
+  &quot; Setup the notice_proc_mngr object
+  &quot; See IF_REAJ_METHOD~GET_PARENT_POINTER for similar code
+  IF lo_contract IS BOUND.
+*   get notice manager
+    lo_notice_mngr = lo_contract-&gt;get_term_notice_mngr( ).
+    IF lo_notice_mngr IS BOUND.
+*     get notice proc manager
+      CALL METHOD lo_notice_mngr-&gt;get_notice_proc_mngr
+        RECEIVING
+          ro_notice_proc_mngr = lo_notice_proc_mngr
+        EXCEPTIONS
+          not_found           = 1
+          OTHERS              = 2.
+      IF sy-subrc &lt;&gt; 0.
+        CLEAR lo_notice_proc_mngr.
+        raise not_found.
+      ENDIF.
+    ENDIF.
+  ENDIF.
+
+  &quot; Choose party (has no impact on result if term applies to BOTH)
+  &quot; see FORM on_ntsim_toggle_prty INCLUDE LRETM_GUI_NTSIM_POPUPF01
+  IF i_landlord = &apos;X&apos;.
+    CALL METHOD lo_notice_proc_mngr-&gt;set_sim_defaults
+      EXPORTING
+        id_sim_ntprocprty = retm2_ntprocprty-landlord.
+  ELSE.
+    CALL METHOD lo_notice_proc_mngr-&gt;set_sim_defaults
+      EXPORTING
+        id_sim_ntprocprty = retm2_ntprocprty-tenant.
+  ENDIF.
+
+  &quot; Get the list of all notices
+  &quot; See FORM GRID_GET_DATA from INCLUDE LRETM_GUI_NTSIMF01
+
+  CALL METHOD lo_notice_proc_mngr-&gt;calc_date_list
+    EXPORTING
+      if_simulate = abap_true
+    IMPORTING
+      et_ntsim    = et_ntsim
+    EXCEPTIONS
+      error       = 1
+      OTHERS      = 2.
+  if sy-subrc &lt;&gt; 0.
+    raise  others.
+    endif.</fm_source_new>
+   </functionmodule>
+  </functionmodules>
+ </FUGR>
+ <PROG NAME="ZREFX_CNT_NOTICE_DATA_TEST" VARCL="X" SUBC="1" CNAM="CCIA" CDAT="20130318" UNAM="CCIA" UDAT="20130319" VERN="000017" RMAND="200" RLOAD="E" FIXPT="X" SDATE="20130319" STIME="101034" IDATE="20130319" ITIME="101034" UCCHECK="X">
+  <textPool>
+   <language SPRAS="E">
+    <textElement ID="R" ENTRY="Program Z_TEST_CONTRACT_DATA" LENGTH="28 "/>
+   </language>
+  </textPool>
+  <programDocumentation/>
+  <source>*&amp;---------------------------------------------------------------------*
+*&amp; Report  Z_TEST_CONTRACT_DATA
+*&amp;
+*&amp;---------------------------------------------------------------------*
+*This report returns via ABAP, the notice dates that can are obtained
+*in transactino RE80 when displaying a contract
+
+REPORT  zrefx_cnt_notice_data_test.
+
+DATA:
+      lr_contrtype TYPE RANGE OF recncontracttype,
+      lrs_contrtype LIKE LINE OF lr_contrtype.
+
+
+DATA: l_bukrs TYPE bukrs.
+SELECT-OPTIONS: s_bukrs FOR l_bukrs.
+DATA: l_reccnr TYPE recnnumber.
+SELECT-OPTIONS: s_recnnr FOR l_bukrs.
+PARAMETERS: p_lndlrd TYPE c AS CHECKBOX.
+
+DATA:
+  ls_contract     TYPE recn_contract,
+  lt_ntsim          TYPE re_t_notice_sim,
+  ls_ntsim         TYPE retm_notice_sim.
+
+&quot;Limit to ZRDD, ZEXT and ZRIN
+lrs_contrtype-sign = &apos;I&apos;.
+lrs_contrtype-option = &apos;EQ&apos;.
+lrs_contrtype-low = &apos;ZRDD&apos;.
+APPEND lrs_contrtype TO lr_contrtype.
+lrs_contrtype-low = &apos;ZRIN&apos;.
+APPEND lrs_contrtype TO lr_contrtype.
+lrs_contrtype-low = &apos;ZEXT&apos;.
+APPEND lrs_contrtype TO lr_contrtype.
+
+
+SELECT * FROM vicncn INTO ls_contract
+  WHERE bukrs IN s_bukrs
+    AND recnnr IN s_recnnr
+    AND recntype IN lr_contrtype.
+
+  CALL FUNCTION &apos;ZREFX_CNT_NOTICE_GET_LIST&apos;
+    EXPORTING
+      i_recnnr   = ls_contract-recnnr
+      i_bukrs    = ls_contract-bukrs
+      i_landlord = &apos;1&apos;
+    IMPORTING
+      et_ntsim   = lt_ntsim
+ EXCEPTIONS
+   NOT_FOUND        = 1
+   OTHERS           = 2.
+
+  IF sy-subrc = 1.
+    NEW-LINE.
+    WRITE: ls_contract-recnnr, &apos;: No notice&apos;.
+  ELSEif sy-subrc &gt; 1..
+    NEW-LINE.
+    WRITE: ls_contract-recnnr, &apos;: Error&apos;.
+  ELSE.
+    LOOP AT lt_ntsim INTO ls_ntsim.
+      NEW-LINE.
+      WRITE: ls_contract-recnnr, &apos;:&apos;, ls_ntsim-ntreceiptfrom, &apos;:&apos;, ls_ntsim-ntreceiptto, &apos;:&apos;, ls_ntsim-ntcalculated.
+    ENDLOOP.
+  ENDIF.
+
+ENDSELECT.</source>
+ </PROG>
+</nugget>
