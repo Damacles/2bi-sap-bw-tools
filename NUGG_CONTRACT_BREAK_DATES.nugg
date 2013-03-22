@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="utf-16"?>
+<nugget name="CONTRACT_BREAK_DATES">
+ <PROG NAME="ZREFX_CNT_BREAK_DATA_TEST" VARCL="X" SUBC="1" CNAM="CCIA" CDAT="20130322" UNAM="CCIA" UDAT="20130322" VERN="000014" RMAND="200" RLOAD="E" FIXPT="X" SDATE="20130322" STIME="234047" IDATE="20130322" ITIME="234047" UCCHECK="X">
+  <textPool>
+   <language SPRAS="E">
+    <textElement ID="R" ENTRY="Program Z_TEST_CONTRACT_DATA" LENGTH="28 "/>
+   </language>
+  </textPool>
+  <programDocumentation/>
+  <source>*&amp;---------------------------------------------------------------------*
+*&amp; Report  Z_TEST_CONTRACT_DATA
+*&amp;
+*&amp;---------------------------------------------------------------------*
+*This report returns via ABAP, the break dates that can are obtained
+*in transaction RE80 when displaying a contract
+
+REPORT  zrefx_cnt_break_data_test.
+
+DATA:
+      lr_contrtype TYPE RANGE OF recncontracttype,
+      lrs_contrtype LIKE LINE OF lr_contrtype.
+
+DATA: l_bukrs TYPE bukrs.
+SELECT-OPTIONS: s_bukrs FOR l_bukrs.
+DATA: l_reccnr TYPE recnnumber.
+SELECT-OPTIONS: s_recnnr FOR l_reccnr.
+
+DATA:
+  ls_contract     TYPE recn_contract,
+  lt_rnsim        TYPE re_t_renewal_sim,
+  ls_rnsim        TYPE RETM_RENEWAL_SIM.
+
+&quot;Limit to ZRDD, ZEXT and ZRIN
+lrs_contrtype-sign = &apos;I&apos;.
+lrs_contrtype-option = &apos;EQ&apos;.
+lrs_contrtype-low = &apos;ZRDD&apos;.
+APPEND lrs_contrtype TO lr_contrtype.
+lrs_contrtype-low = &apos;ZRIN&apos;.
+APPEND lrs_contrtype TO lr_contrtype.
+lrs_contrtype-low = &apos;ZEXT&apos;.
+APPEND lrs_contrtype TO lr_contrtype.
+
+
+SELECT * FROM vicncn INTO ls_contract
+  WHERE bukrs IN s_bukrs
+    AND recnnr IN s_recnnr
+    AND recntype IN lr_contrtype.
+CALL FUNCTION &apos;ZREFX_CNT_BREAK_GET_LIST&apos;
+  EXPORTING
+      i_recnnr   = ls_contract-recnnr
+      i_bukrs    = ls_contract-bukrs
+ IMPORTING
+   ET_RNSIM        = lt_rnsim
+ EXCEPTIONS
+   NOT_FOUND       = 1
+   OTHERS          = 2.
+  IF sy-subrc = 1.
+    NEW-LINE.
+    WRITE: ls_contract-recnnr, &apos;: No break&apos;.
+  ELSEif sy-subrc &gt; 1..
+    NEW-LINE.
+    WRITE: ls_contract-recnnr, &apos;: Error&apos;.
+  ELSE.
+    LOOP AT lt_rnsim INTO ls_rnsim.
+      NEW-LINE.
+      WRITE: ls_contract-recnnr, &apos;:&apos;, ls_rnsim-RNEXTDATE, &apos;:&apos;, ls_rnsim-RNNOTDATE.
+    ENDLOOP.
+  ENDIF.
+
+ENDSELECT.</source>
+ </PROG>
+ <FUGR SPRAS="E" AREA="ZREFX_BREAKS" AREAT="ZREFX_BREAKS">
+  <mainprogram NAME="SAPLZREFX_BREAKS" VARCL="X" DBAPL="S" DBNA="D$" SUBC="F" APPL="S" CNAM="CCIA" CDAT="20130322" UNAM="CCIA" UDAT="20130322" VERN="000002" RMAND="200" RLOAD="E" FIXPT="X" SDATE="20130322" STIME="234233" IDATE="20130322" ITIME="232306" LDBNAME="D$S" UCCHECK="X">
+   <textPool/>
+   <source>*******************************************************************
+*   System-defined Include-files.                                 *
+*******************************************************************
+  INCLUDE LZREFX_BREAKSTOP.                  &quot; Global Data
+  INCLUDE LZREFX_BREAKSUXX.                  &quot; Function Modules
+
+*******************************************************************
+*   User-defined Include-files (if necessary).                    *
+*******************************************************************
+* INCLUDE LZREFX_BREAKSF...                  &quot; Subroutines
+* INCLUDE LZREFX_BREAKSO...                  &quot; PBO-Modules
+* INCLUDE LZREFX_BREAKSI...                  &quot; PAI-Modules
+* INCLUDE LZREFX_BREAKSE...                  &quot; Events
+* INCLUDE LZREFX_BREAKSP...                  &quot; Local class implement.</source>
+  </mainprogram>
+  <includeprograms>
+   <include NAME="LZREFX_BREAKSTOP" VARCL="X" DBAPL="S" DBNA="D$" SUBC="I" APPL="S" CNAM="CCIA" CDAT="20130322" UNAM="CCIA" UDAT="20130322" VERN="000002" RMAND="200" FIXPT="X" SDATE="20130322" STIME="232306" IDATE="20130322" ITIME="232306" LDBNAME="D$S" UCCHECK="X">
+    <include_source>FUNCTION-POOL ZREFX_BREAKS.                 &quot;MESSAGE-ID ..
+
+* INCLUDE LZREFX_BREAKSD...                  &quot; Local class definition</include_source>
+   </include>
+  </includeprograms>
+  <functionmodules>
+   <functionmodule NAME="ZREFX_CNT_BREAK_GET_LIST" STEXT="ZREFX_CNT_NOTICE_GET_LIST">
+    <importing PARAMETER="I_RECNNR" REFERENCE="X" TYP="RECNNUMBER"/>
+    <importing PARAMETER="I_BUKRS" REFERENCE="X" TYP="BUKRS"/>
+    <exporting PARAMETER="ET_RNSIM" REFERENCE="X" TYP="RE_T_RENEWAL_SIM"/>
+    <exceptions EXCEPTION="NOT_FOUND"/>
+    <documentation PARAMETER="I_RECNNR" KIND="P" STEXT="Contract Number" INDEX=" 001"/>
+    <documentation PARAMETER="I_BUKRS" KIND="P" STEXT="Company Code" INDEX=" 002"/>
+    <documentation PARAMETER="ET_RNSIM" KIND="P" STEXT="Simulation of Notice Rule" INDEX=" 003"/>
+    <documentation PARAMETER="NOT_FOUND" KIND="X" STEXT="No notice found" INDEX=" 004"/>
+    <fm_source_new>DATA:
+    lo_rn_mngr      TYPE REF TO if_recn_renewal_mngr,
+    lo_rn_rule_mngr TYPE REF TO if_retm_renewal_rule_mngr,
+    ls_contract     TYPE recn_contract,
+    lo_contract     TYPE REF TO if_recn_contract.
+
+  &quot; Setup a if_recn_contract object reference
+  &quot; See FORM recontract_package_get in INCLUDE LREIS_MASTERDATA_EXTRACTIONF01
+  SELECT SINGLE * FROM vicncn INTO CORRESPONDING FIELDS OF ls_contract
+  WHERE bukrs = i_bukrs
+    AND recnnr = i_recnnr.
+
+*     get object
+  CALL METHOD cf_recn_contract=&gt;find_by_detail
+    EXPORTING
+      is_detail   = ls_contract
+    RECEIVING
+      ro_instance = lo_contract
+    EXCEPTIONS
+      OTHERS      = 0.
+
+
+  &quot; See PERFORM cn_next_end_get in the include file LREIS_MASTERDATA_EXTRACTIONF02
+  IF lo_contract IS BOUND.
+    lo_rn_mngr = lo_contract-&gt;get_renewal_mngr( ).
+    CALL METHOD lo_rn_mngr-&gt;get_renewal_rule_mngr
+      RECEIVING
+        ro_instance = lo_rn_rule_mngr
+      EXCEPTIONS
+        not_found   = 1
+        OTHERS      = 2.
+    IF sy-subrc &lt;&gt; 0.
+      RETURN.
+    ENDIF.
+
+    CALL METHOD lo_rn_rule_mngr-&gt;set_sim_defaults
+      EXPORTING
+        if_sim_reject_all = abap_true.
+
+    CALL METHOD lo_rn_rule_mngr-&gt;calc_date_list
+      EXPORTING
+        if_simulate = abap_true
+      IMPORTING
+        et_rnsim    = et_rnsim
+      EXCEPTIONS
+        error       = 1
+        OTHERS      = 2.
+    IF sy-subrc &lt;&gt; 0.
+      RETURN.
+    ENDIF.
+  ENDIF.</fm_source_new>
+   </functionmodule>
+  </functionmodules>
+ </FUGR>
+</nugget>
