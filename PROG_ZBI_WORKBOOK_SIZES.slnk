@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-16"?>
+<PROG NAME="ZBI_WORKBOOK_SIZES" VARCL="X" SUBC="1" CNAM="EXC060" CDAT="20130328" UNAM="EXC060" UDAT="20130329" VERN="000009" RMAND="001" RLOAD="E" FIXPT="X" SDATE="20130329" STIME="122741" IDATE="20130329" ITIME="122741" UCCHECK="X">
+ <textPool>
+  <language SPRAS="E">
+   <textElement ID="R" ENTRY="List Workbook sizes" LENGTH="19 "/>
+  </language>
+ </textPool>
+ <source>*&amp;---------------------------------------------------------------------*
+*&amp; Report  ZBI_WORKBOOK_SIZES
+*&amp;
+*&amp;---------------------------------------------------------------------*
+*&amp;
+*&amp;
+*&amp;---------------------------------------------------------------------*
+
+REPORT  zbi_workbook_sizes.
+
+TYPES:
+   BEGIN OF ty_output,
+     workbookid TYPE rsrwbindex-workbookid,
+     lines TYPE i,
+     title_n TYPE rsrwbindext-title,
+     title_f TYPE rsrwbindext-title,
+   END OF ty_output.
+
+DATA:
+      l_lines TYPE i,
+      lt_output TYPE TABLE OF ty_output,
+      ls_output TYPE ty_output,
+      ls_rsrwbindex TYPE rsrwbindex,
+      ls_rsrwbindext_n TYPE rsrwbindext,
+      ls_rsrwbindext_f TYPE rsrwbindext,
+      lt_rsrwbindex TYPE TABLE OF rsrwbindex.
+
+&quot; Selection parameters
+SELECT-OPTIONS s_wbk FOR ls_rsrwbindex-workbookid.
+
+&quot; Get list of workbooks
+SELECT * FROM rsrwbindex INTO TABLE lt_rsrwbindex
+  WHERE workbookid IN s_wbk
+    AND objvers = &apos;A&apos;.
+
+LOOP AT lt_rsrwbindex INTO ls_rsrwbindex.
+  SELECT MAX( linenumber ) FROM rsrwbstore INTO l_lines
+    WHERE objvers = &apos;A&apos;
+      AND workbookid = ls_rsrwbindex-workbookid.
+  SELECT SINGLE * FROM rsrwbindext INTO ls_rsrwbindext_n
+    WHERE objvers = &apos;A&apos;
+     AND langu = &apos;N&apos;
+     AND  workbookid = ls_rsrwbindex-workbookid.
+
+  SELECT SINGLE * FROM rsrwbindext INTO ls_rsrwbindext_f
+WHERE objvers = &apos;A&apos;
+ AND langu = &apos;F&apos;
+ AND  workbookid = ls_rsrwbindex-workbookid.
+  ls_output-workbookid = ls_rsrwbindex-workbookid.
+  ls_output-lines = l_lines.
+  ls_output-title_n = ls_rsrwbindext_n-title.
+  ls_output-title_f = ls_rsrwbindext_f-title.
+  APPEND ls_output TO lt_output.
+ENDLOOP.
+SORT lt_output BY lines DESCENDING.
+LOOP AT lt_output INTO ls_output.
+  WRITE:  ls_output-title_n, ls_output-title_f, ls_output-lines, ls_output-workbookid .
+  NEW-LINE.
+ENDLOOP.</source>
+</PROG>

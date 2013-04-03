@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-16"?>
+<PROG NAME="ZREFX_CNT_INDX_DATA" VARCL="X" SUBC="1" CNAM="CCIA" CDAT="20130403" UNAM="CCIA" UDAT="20130404" VERN="000006" RMAND="200" RLOAD="E" FIXPT="X" SDATE="20130404" STIME="000137" IDATE="20130404" ITIME="000137" UCCHECK="X">
+ <textPool>
+  <language SPRAS="E">
+   <textElement ID="R" ENTRY="ZREFX_CNT_INDX_DATA" LENGTH="19 "/>
+  </language>
+ </textPool>
+ <programDocumentation/>
+ <source>*&amp;---------------------------------------------------------------------*
+*&amp; Report  ZREFX_CNT_INDX_DATA
+*&amp;
+*&amp;---------------------------------------------------------------------*
+*&amp;
+*&amp;
+*&amp;---------------------------------------------------------------------*
+
+REPORT  zrefx_cnt_indx_data.
+
+
+DATA:
+      ls_viajrecindx TYPE viajrecindx,
+      ls_viajrecord TYPE viajrecord,
+      lt_viajrecindx TYPE TABLE OF viajrecindx,
+      lt_viajrecord TYPE TABLE OF viajrecord.
+
+DATA:
+      lr_contrtype TYPE RANGE OF recncontracttype,
+      lrs_contrtype LIKE LINE OF lr_contrtype.
+
+DATA: l_bukrs TYPE bukrs.
+SELECT-OPTIONS: s_bukrs FOR l_bukrs.
+DATA: l_reccnr TYPE recnnumber.
+SELECT-OPTIONS: s_recnnr FOR l_reccnr.
+
+DATA:
+  ls_contract     TYPE recn_contract,
+  lt_rnsim        TYPE re_t_renewal_sim,
+  ls_rnsim        TYPE retm_renewal_sim.
+
+&quot;Limit to ZRDD, ZEXT and ZRIN
+lrs_contrtype-sign = &apos;I&apos;.
+lrs_contrtype-option = &apos;EQ&apos;.
+lrs_contrtype-low = &apos;ZRDD&apos;.
+APPEND lrs_contrtype TO lr_contrtype.
+lrs_contrtype-low = &apos;ZRIN&apos;.
+APPEND lrs_contrtype TO lr_contrtype.
+lrs_contrtype-low = &apos;ZEXT&apos;.
+APPEND lrs_contrtype TO lr_contrtype.
+
+
+SELECT * FROM vicncn INTO ls_contract
+  WHERE bukrs IN s_bukrs
+    AND recnnr IN s_recnnr
+    AND recntype IN lr_contrtype.
+
+  REFRESH lt_viajrecord.
+  REFRESH lt_viajrecindx.
+
+  SELECT * FROM viajrecord
+    INTO TABLE lt_viajrecord
+    WHERE adjmdrecordstat = &apos;3&apos;
+    AND intreno = ls_contract-intreno.
+
+  SELECT * FROM viajrecindx
+    INTO TABLE lt_viajrecindx
+    FOR ALL ENTRIES IN lt_viajrecord
+    WHERE processguid = lt_viajrecord-processguid
+      and intreno = lt_viajrecord-intreno.
+
+  LOOP AT lt_viajrecord INTO ls_viajrecord.
+read table lt_viajrecindx into ls_viajrecindx
+  with key processguid = ls_viajrecord-processguid
+           intreno = ls_viajrecord-intreno.
+    NEW-LINE.
+    WRITE: ls_contract-recnnr, &apos;:&apos;, ls_viajrecindx-firstindexbase ,&apos;:&apos;, ls_viajrecindx-indexseries ,&apos;:&apos;, ls_viajrecindx-indexbaseyear , &apos;:&apos;, ls_viajrecord-adjmfromold, &apos;:&apos;,&apos;:&apos;, ls_viajrecord-adjmfromcalc, &apos;:&apos;, ls_viajrecindx-adjmindexbase.
+  ENDLOOP.
+ENDSELECT.</source>
+</PROG>
