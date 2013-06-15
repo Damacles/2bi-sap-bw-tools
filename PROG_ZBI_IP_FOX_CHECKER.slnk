@@ -1,0 +1,682 @@
+<?xml version="1.0" encoding="utf-16"?>
+<PROG NAME="ZBI_IP_FOX_CHECKER" VARCL="X" SUBC="1" CNAM="EXC060" CDAT="20130606" UNAM="EXC060" UDAT="20130606" VERN="000002" RMAND="001" RLOAD="E" FIXPT="X" SDATE="20130606" STIME="141443" IDATE="20130606" ITIME="141443" UCCHECK="X">
+ <textPool>
+  <language SPRAS="E">
+   <textElement ID="R" ENTRY="BI-Integrated Planning: FOX Checker" LENGTH="35 "/>
+   <textElement ID="S" KEY="P_TECH" ENTRY="        Display technical names" LENGTH="31 "/>
+   <textElement ID="S" KEY="P_GEN" ENTRY="        Generated ABAP (if necessary)" LENGTH="37 "/>
+   <textElement ID="S" KEY="SO_LVL" ENTRY="        Aggregation level" LENGTH="25 "/>
+   <textElement ID="S" KEY="SO_SRV" ENTRY="        Planning function" LENGTH="25 "/>
+   <textElement ID="I" KEY="T01" ENTRY="To be checked..." LENGTH="16 "/>
+   <textElement ID="I" KEY="T02" ENTRY="Options" LENGTH="7 "/>
+  </language>
+ </textPool>
+ <source>************************************************************************
+* ZBI_IP_FOX_CHECKER
+* -------------------
+* Display list of IP formulas and perform a syntax check
+* See: http://wiki.sdn.sap.com/wiki/display/Snippets/Program+1+-+BI-IP+Formula+Syntax+Checker
+*
+* (c) SAP AG 2009
+* created: 2009-04-08                                MFB, SAP Labs, LLC
+* last update: 2009-04-08
+************************************************************************
+
+REPORT zbi_ip_fox_checker.
+
+TYPE-POOLS: rs, icon.
+
+TABLES: rsplf_srv.
+
+SELECTION-SCREEN BEGIN OF BLOCK b1 WITH FRAME TITLE text-t01.
+SELECT-OPTIONS:
+  so_lvl FOR rsplf_srv-infoprov,
+  so_srv FOR rsplf_srv-srvnm.
+SELECTION-SCREEN END   OF BLOCK b1.
+
+SELECTION-SCREEN BEGIN OF BLOCK b2 WITH FRAME TITLE text-t02.
+PARAMETERS:
+  p_tech AS CHECKBOX DEFAULT rs_c_false,
+  p_gen  AS CHECKBOX DEFAULT rs_c_false.
+SELECTION-SCREEN END   OF BLOCK b2.
+
+*-----------------------------------------------------------------------
+
+CONSTANTS:
+  const_fox     TYPE rsplf_srvtypenm VALUE &apos;0RSPL_FORMULA&apos;,
+  const_alvl    TYPE rstlogo         VALUE &apos;ALVL&apos;.
+
+* F4-help
+TYPES:
+  BEGIN OF ys_help_value,
+    value       TYPE rsvalue,
+    icon        TYPE rsicon,
+    txtlg       TYPE rstxtlg,
+  END OF ys_help_value.
+
+DATA:
+  g_pattern           TYPE string,
+  g_value             TYPE dynfieldvalue,
+  gs_help_value       TYPE ys_help_value,
+  gt_help_value       TYPE TABLE OF ys_help_value,
+  gs_retval           TYPE ddshretval,
+  gt_retval           TYPE STANDARD TABLE OF ddshretval.
+
+* BI-IP: InfoProvider (Aggregation Level)
+DATA:
+  g_infoprov          TYPE rsinfoprov,
+  gr_dta              TYPE REF TO cl_rsd_dta,
+  gs_dta              TYPE rsd_s_dta,
+  gs_char             TYPE rspls_s_rfc_ip_info_char,
+  gt_char             TYPE TABLE OF rspls_s_rfc_ip_info_char,
+  gt_keyf             TYPE TABLE OF rspls_s_rfc_ip_info_keyfg,
+  gs_comp             TYPE rspls_s_rfc_ip_info_compound,    &quot;#EC NEEDED
+  gt_comp             TYPE TABLE OF
+                           rspls_s_rfc_ip_info_compound,    &quot;#EC NEEDED
+  gt_return           TYPE TABLE OF bapiret2.
+
+* BI-IP: Planning function
+DATA:
+  gs_srv              TYPE rsplf_srv,
+  gt_srv              TYPE TABLE OF rsplf_srv WITH DEFAULT KEY,
+  gs_service          TYPE rsplfb_s_rfc_service_info,
+  gt_service          TYPE rsplfb_t_rfc_service_info,
+  g_srv_txt           TYPE rstxtlg,
+  gr_msg              TYPE REF TO cl_rsplfu_msg,
+  gr_srv              TYPE REF TO cl_rsplfs_srv,
+  gt_char_usage       TYPE rsplf_t_char_usage,
+  gs_param_set_rule   TYPE rsplfa_s_param_set_rule,
+  gt_param_set_rule   TYPE rsplfa_t_param_set_rule,
+  gs_fcat             TYPE rspls_s_forml_fcat,
+  gt_fcat             TYPE rspls_ts_forml_fcat,
+  gt_param_tab        TYPE rsplfa_t_param_struc,
+  gr_forml_line       TYPE REF TO if_rsplfa_param_struc,
+  gr_fline            TYPE REF TO if_rsplfa_param_elem,
+  g_fline             TYPE c LENGTH 60,
+  g_forml_string      TYPE string,
+  g_error             TYPE rs_bool,
+  g_error_infoprov    TYPE rs_bool,
+  g_error_pos         TYPE i,
+  g_error_line        TYPE i,
+  gs_forml            TYPE rspls_s_forml,
+  gt_forml            TYPE rspls_ts_forml,
+  gt_variable         TYPE rspls_ts_variable.               &quot;#EC NEEDED
+
+*-----------------------------------------------------------------------
+
+* General
+DATA:
+  gs_text     TYPE textpool,
+  gt_text     TYPE TABLE OF textpool,
+  gt_text_old TYPE TABLE OF textpool,
+  g_dummy     TYPE string,
+  g_comma     TYPE rs_bool,
+  g_len       TYPE i,
+  g_count     TYPE i,
+  g_condi     TYPE i,
+  g_condt     TYPE rs_bool,
+  g_subrc     TYPE sy-subrc,
+  g_repkey    TYPE xstring,
+  g_report    TYPE programm,
+  g_generate  TYPE char1.                                   &quot;#EC NEEDED
+
+* BPS: FOX
+DATA:
+  gs_calcf    TYPE upc_ys_cha,
+  gt_calcf    TYPE upc_yto_cha,
+  gt_cline    TYPE upf_yt_cline,                            &quot;#EC NEEDED
+  gt_formlb   TYPE upc_yt_formlb.                           &quot;#EC NEEDED
+
+* Optimizer
+TYPES:
+  BEGIN OF ys_replin,
+    line     TYPE c LENGTH 132,
+  END OF ys_replin.
+
+DATA:
+  gt_ugly     TYPE TABLE OF ys_replin WITH HEADER LINE,
+  gt_pretty   TYPE TABLE OF ys_replin WITH HEADER LINE.
+
+*-----------------------------------------------------------------------
+
+DEFINE write_tech.
+  g_len = strlen( &amp;1 ).
+  if g_len &gt; 0 and p_tech = rs_c_true.
+    write: space no-gap, &apos;(&apos; no-gap, &amp;1(g_len) no-gap, &apos;)&apos; no-gap.
+  endif.
+END-OF-DEFINITION.
+
+DEFINE write_title.
+  write: at /5 &amp;1 color col_group.
+  if not &amp;2 is initial.
+    write &amp;2 color col_group intensified off no-gap.
+  endif.
+  if not &amp;3 is initial.
+    write &amp;3 color col_group intensified off no-gap.
+  endif.
+  skip.
+END-OF-DEFINITION.
+
+DEFINE write_header.
+  write: at /3 &amp;1 color col_key.
+  if not &amp;2 is initial.
+    write &amp;2 color col_key intensified off no-gap.
+  endif.
+  if not &amp;3 is initial.
+    write &amp;3 color col_key intensified off no-gap.
+  endif.
+  skip.
+END-OF-DEFINITION.
+
+DEFINE write_normal.
+  write: at /5 &amp;1 color col_normal.
+  skip.
+END-OF-DEFINITION.
+
+DEFINE write_value.
+  write: at /5 &amp;1 color col_normal.
+  write &amp;2 color col_normal intensified off no-gap.
+  skip.
+END-OF-DEFINITION.
+
+DEFINE write_hotspot.
+  write: at /5 &amp;1 color col_normal.
+  if not &amp;2 is initial.
+    write &amp;2 color col_normal intensified off no-gap hotspot on.
+    hide &amp;2.
+  endif.
+  skip.
+END-OF-DEFINITION.
+
+DEFINE write_field.
+  read table gt_char into gs_char with key iobjnm = &amp;1.
+  if sy-subrc = 0.
+    g_len = strlen( gs_char-txtlg ).
+    write: gs_char-txtlg(g_len) no-gap.
+  else.
+    write: &apos;Key figure&apos; no-gap.
+  endif.
+  write_tech &amp;1.
+END-OF-DEFINITION.
+
+DEFINE addtextpool.
+  read table gt_text into gs_text with key id = &amp;1 key = &amp;2.
+  if sy-subrc = 0.
+    delete gt_text where id = &amp;1 and key = &amp;2.
+  endif.
+  clear gs_text.
+  gs_text-id    = &amp;1.
+  gs_text-key   = &amp;2.
+  if &amp;1 = &apos;S&apos;.
+    gs_text-entry+8 = &amp;3.
+  else.
+    gs_text-entry = &amp;3.
+  endif.
+  append gs_text to gt_text.
+END-OF-DEFINITION.
+
+*-----------------------------------------------------------------------
+INITIALIZATION.
+
+  READ TEXTPOOL sy-repid INTO gt_text LANGUAGE sy-langu.
+
+  gt_text_old = gt_text.
+
+  addtextpool &apos;R&apos; &apos;&apos; &apos;BI-Integrated Planning: FOX Checker&apos;.
+
+  addtextpool &apos;S&apos; &apos;P_TECH&apos;   &apos;Display technical names&apos;.
+  addtextpool &apos;S&apos; &apos;P_GEN&apos;    &apos;Generated ABAP (if necessary)&apos;.
+  addtextpool &apos;S&apos; &apos;SO_LVL&apos;   &apos;Aggregation level&apos;.
+  addtextpool &apos;S&apos; &apos;SO_SRV&apos;   &apos;Planning function&apos;.
+
+  addtextpool &apos;I&apos; &apos;T01&apos;	&apos;To be checked...&apos;.
+  addtextpool &apos;I&apos; &apos;T02&apos;	&apos;Options&apos;.
+
+  IF gt_text &lt;&gt; gt_text_old.
+    INSERT textpool sy-repid FROM gt_text LANGUAGE sy-langu.
+  ENDIF.
+
+*-----------------------------------------------------------------------
+AT SELECTION-SCREEN ON VALUE-REQUEST FOR so_lvl-low.
+
+  CALL METHOD cl_rsd_dta=&gt;f4
+    EXPORTING
+      i_tlogo    = const_alvl
+    CHANGING
+      c_infoprov = so_lvl-low.
+
+AT SELECTION-SCREEN ON VALUE-REQUEST FOR so_lvl-high.
+
+  CALL METHOD cl_rsd_dta=&gt;f4
+    EXPORTING
+      i_tlogo    = const_alvl
+    CHANGING
+      c_infoprov = so_lvl-high.
+
+AT SELECTION-SCREEN ON VALUE-REQUEST FOR so_srv-low.
+
+  PERFORM f4_srv CHANGING so_srv-low.
+
+AT SELECTION-SCREEN ON VALUE-REQUEST FOR so_srv-high.
+
+  PERFORM f4_srv CHANGING so_srv-high.
+
+*-----------------------------------------------------------------------
+AT LINE-SELECTION.
+
+  IF NOT g_report IS INITIAL.
+    EDITOR-CALL FOR REPORT g_report DISPLAY-MODE.
+  ENDIF.
+  CLEAR g_report.
+
+*-----------------------------------------------------------------------
+START-OF-SELECTION.
+
+* Select planning functions of type &quot;formula&quot;
+  SELECT * FROM rsplf_srv INTO TABLE gt_srv
+    WHERE srvnm    IN so_srv
+      AND infoprov IN so_lvl
+      AND objvers   = rs_c_objvers-active
+      AND srvtypenm = const_fox
+    ORDER BY infoprov srvnm.
+
+* Process one function at a time
+  LOOP AT gt_srv INTO gs_srv.
+
+*   Get meta info if this is a new InfoProvider (Aggregation Level)
+    IF g_infoprov &lt;&gt; gs_srv-infoprov.
+      g_error_infoprov = rs_c_false.
+
+      g_infoprov = gs_srv-infoprov.
+
+      CALL FUNCTION &apos;RSPLSIP_INFOPROV_GETDETAIL&apos;
+        EXPORTING
+          i_infoprovider     = g_infoprov
+        IMPORTING
+          e_subrc            = g_subrc
+        TABLES
+          e_t_characteristic = gt_char
+          e_t_keyfigure      = gt_keyf
+          e_t_compounding    = gt_comp
+          e_t_return         = gt_return.
+
+      IF g_subrc &lt;&gt; 0.
+        WRITE: &apos;Error in InfoProvider!&apos; COLOR COL_NEGATIVE, g_infoprov.
+        g_error_infoprov = rs_c_true.
+        ULINE.
+        CONTINUE.
+      ENDIF.
+
+      CALL METHOD cl_rsd_dta=&gt;factory
+        EXPORTING
+          i_infoprov = g_infoprov
+        RECEIVING
+          r_r_dta    = gr_dta
+        EXCEPTIONS
+          not_found  = 1
+          OTHERS     = 2.
+      IF sy-subrc &lt;&gt; 0.
+        WRITE: &apos;Error in InfoProvider!&apos; COLOR COL_NEGATIVE, g_infoprov.
+        g_error_infoprov = rs_c_true.
+        ULINE.
+        CONTINUE.
+      ENDIF.
+
+      CALL METHOD gr_dta-&gt;dta_get_info
+        IMPORTING
+          e_s_dta         = gs_dta
+        EXCEPTIONS
+          dta_not_found   = 1
+          iobj_not_found  = 2
+          objvers_invalid = 3
+          OTHERS          = 4.
+      IF sy-subrc &lt;&gt; 0.
+        WRITE: &apos;Error in InfoProvider!&apos; COLOR COL_NEGATIVE, g_infoprov.
+        g_error_infoprov = rs_c_true.
+        ULINE.
+        CONTINUE.
+      ENDIF.
+    ENDIF.
+
+    CHECK g_error_infoprov = rs_c_false.
+
+*   Get formula and field catalog
+    CREATE OBJECT gr_msg.
+
+    TRY.
+        CALL METHOD cl_rsplfs_srv=&gt;factory
+          EXPORTING
+            i_srvnm = gs_srv-srvnm
+          RECEIVING
+            r_r_srv = gr_srv.
+
+      CATCH cx_rspls_msg_static_check .
+        WRITE: &apos;Error in Planning Function!&apos; COLOR COL_NEGATIVE, gs_srv-srvnm.
+        ULINE.
+        CONTINUE.
+    ENDTRY.
+
+    gt_char_usage     = gr_srv-&gt;if_rsplfa_srv~get_tab_char_usage( ).
+    gt_param_set_rule = gr_srv-&gt;if_rsplfa_srv~get_param_set_rules( ).
+    SORT gt_param_set_rule BY rulepos.
+
+    g_srv_txt = gr_srv-&gt;if_rsplfa_srv~get_text( ).
+
+*   Get field catalog
+    CALL METHOD cl_rsplfc_formula=&gt;get_forml_fcat
+      EXPORTING
+        i_r_msg         = gr_msg
+        i_infoprov      = g_infoprov
+        i_t_char_usage  = gt_char_usage
+      RECEIVING
+        r_ts_forml_fcat = gt_fcat.
+
+    IF rs_c_true = gr_msg-&gt;is_filled( ).
+      WRITE: &apos;Error getting field catalog!&apos; COLOR COL_NEGATIVE, g_infoprov.
+      ULINE.
+      CONTINUE.
+    ENDIF.
+
+*   Print header
+    WRITE: / &apos;Aggregation level :&apos; COLOR COL_HEADING,
+             gs_dta-txtlg COLOR COL_HEADING INTENSIFIED OFF NO-GAP.
+    write_tech gs_srv-infoprov.
+
+    WRITE: / &apos;Planning function :&apos; COLOR COL_HEADING,
+             g_srv_txt COLOR COL_HEADING INTENSIFIED OFF NO-GAP.
+    write_tech gs_srv-srvnm.
+
+    SKIP.
+
+*   Print &quot;fields to be changed&quot;
+    WRITE: / &apos;Fields to be changed: {&apos;.
+
+    REFRESH gt_calcf.
+    CLEAR g_comma.
+    LOOP AT gt_fcat INTO gs_fcat WHERE calcf = rs_c_true.
+      IF g_comma = rs_c_true.
+        WRITE: &apos;,&apos;.
+      ENDIF.
+
+      CLEAR gs_calcf.
+      gs_calcf-chanm = gs_fcat-fieldname.
+      COLLECT gs_calcf INTO gt_calcf.
+
+      write_field gs_fcat-fieldname.
+
+      g_comma = rs_c_true.
+    ENDLOOP.
+
+    WRITE: &apos; }&apos;.
+    SKIP.
+
+*   For each parameter set...
+    LOOP AT gt_param_set_rule INTO gs_param_set_rule.
+
+*     Get FOX coding from parameters
+      gt_param_tab = gs_param_set_rule-r_param_set-&gt;get_tab_param_struc( &apos;FORMULATAB&apos; ).
+
+      CLEAR g_forml_string.
+      LOOP AT gt_param_tab INTO gr_forml_line.
+        gr_fline = gr_forml_line-&gt;get_comp_elem( &apos;FLINE&apos; ).
+        gr_fline-&gt;get_value( IMPORTING e_value = g_fline ).
+        CONCATENATE g_forml_string g_fline INTO g_forml_string RESPECTING BLANKS.
+      ENDLOOP.
+
+*     Convert FOX coding and get field catalog for parsing
+      CALL METHOD cl_rsplfc_formula=&gt;string_to_forml_tab
+        EXPORTING
+          i_string   = g_forml_string
+        RECEIVING
+          r_ts_forml = gt_forml.
+
+*     Check FOX coding and translates it into tags
+      CALL FUNCTION &apos;RSPLSF_FORMULA_PARSE&apos;
+        EXPORTING
+          it_forml        = gt_forml
+          it_fcat         = gt_fcat
+          i_text_funcname = &apos;RSPLFC_KEYS_CHECK&apos;
+          i_var_funcname  = &apos;RSPLFC_FORMULA_VARIABLES_CHECK&apos;
+        IMPORTING
+          et_cline        = gt_cline
+          et_forml        = gt_formlb
+          ets_variable    = gt_variable
+        EXCEPTIONS
+          syntax_error    = 1
+          OTHERS          = 2.
+      IF sy-subrc = 0.
+        g_error = rs_c_false.
+      ELSE.
+        g_error = rs_c_true.
+        MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
+          WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4 INTO g_dummy.
+        CONCATENATE g_dummy &apos;(&apos; sy-msgid sy-msgno &apos;)&apos; INTO g_dummy
+          SEPARATED BY space.
+      ENDIF.
+
+*     Are there fields for conditions?
+      IF gs_param_set_rule-t_cond_range IS INITIAL.
+        g_condt = rs_c_false.
+      ELSE.
+        g_condt = rs_c_true.
+      ENDIF.
+
+      IF g_condt = rs_c_true.
+        g_condi = gs_param_set_rule-rulepos.
+        write_header &apos;Condition Number:&apos; g_condi &apos;&apos;.
+      ENDIF.
+
+*     Formula definition
+      write_title &apos;Formula Definition:&apos; &apos;&apos; &apos;&apos;.
+
+      PERFORM fox_print_definition.
+
+      IF g_error = rs_c_false.
+        WRITE: AT /5 &apos;Formula syntax checked successfully&apos; COLOR COL_POSITIVE.
+      ELSE.
+        WRITE: AT /5 g_dummy COLOR COL_NEGATIVE.
+        SKIP.
+
+        CALL FUNCTION &apos;RSPLSF_FORMULA_ERROR_POS&apos;
+          IMPORTING
+            e_error_pos  = g_error_pos
+            e_error_line = g_error_line.
+
+        MESSAGE i108(rsplf) WITH g_error_line g_error_pos INTO g_dummy.
+
+        WRITE: AT /5 g_dummy COLOR COL_NEGATIVE.
+      ENDIF.
+
+      SKIP.
+
+*     Statistics
+      write_title &apos;Statistics:&apos; &apos;&apos; &apos;&apos;.
+
+      g_count = 0.
+      LOOP AT gt_forml INTO gs_forml.
+        CONDENSE gs_forml-fline.
+        IF NOT gs_forml-fline IS INITIAL AND gs_forml-fline &lt;&gt; space.
+          g_count = g_count + 1.
+        ENDIF.
+      ENDLOOP.
+      write_value &apos;Lines of FOX.........:&apos; g_count.
+
+*     ABAP-Program
+      CLEAR g_generate.
+
+      EXPORT gs_srv-srvnm TO DATA BUFFER g_repkey.
+
+      CALL FUNCTION &apos;RSPLSR_GENREP_GET&apos;
+        EXPORTING
+          i_applclass  = &apos;FUNC1&apos;
+          i_repkey     = g_repkey
+        IMPORTING
+          e_reportname = g_report
+        EXCEPTIONS
+          not_found    = 1
+          OTHERS       = 2.
+      IF sy-subrc &lt;&gt; 0.
+        CLEAR g_report.
+        g_generate = rs_c_true.
+
+*       Generate ABAP
+        IF p_gen = rs_c_true AND g_error = rs_c_false.
+          CALL FUNCTION &apos;RSPLFC_GENERATE_PROGRAMM&apos;
+            EXPORTING
+              i_ts_forml = gt_forml
+              i_service  = gs_srv-srvnm
+              i_infoprov = gs_srv-infoprov
+              i_ts_fcat  = gt_fcat
+              i_r_msg    = gr_msg
+            IMPORTING
+              e_genprog  = g_report.
+
+          g_generate = rs_c_false.
+        ENDIF.
+
+      ENDIF.
+
+      IF g_generate IS INITIAL AND NOT g_report IS INITIAL.
+        write_hotspot &apos;ABAP Program.........:&apos; g_report.
+      ELSE.
+        write_value &apos;ABAP Program.........:&apos; &apos;( needs to be generated )&apos;.
+      ENDIF.
+
+      SKIP.
+
+    ENDLOOP. &quot; parameter sets
+
+    ULINE.
+
+  ENDLOOP. &quot; planning functions
+
+  IF sy-subrc &lt;&gt; 0.
+    WRITE: &apos;No planning function selected!&apos; COLOR COL_NEGATIVE.
+  ENDIF.
+
+  CLEAR g_report.
+
+*----------------------------------------------------------------------
+
+*&amp;--------------------------------------------------------------------*
+*&amp;      Form  fox_print_definition
+*&amp;--------------------------------------------------------------------*
+*       Write formula definition
+*---------------------------------------------------------------------*
+FORM fox_print_definition.
+
+  DATA: l_line TYPE n LENGTH 5.
+
+  REFRESH gt_ugly.
+  LOOP AT gt_forml INTO gs_forml.
+    gt_ugly-line = gs_forml-fline.
+    REPLACE &apos;FOREACH&apos; IN gt_ugly-line WITH &apos;FOR EACH&apos;.
+    APPEND gt_ugly.
+  ENDLOOP.
+
+  CALL FUNCTION &apos;PRETTY_PRINTER&apos;
+    EXPORTING
+      inctoo             = space
+    TABLES
+      ntext              = gt_pretty[]
+      otext              = gt_ugly[]
+    EXCEPTIONS
+      enqueue_table_full = 1
+      include_enqueued   = 2
+      include_readerror  = 3
+      include_writeerror = 4
+      OTHERS             = 5.
+  IF sy-subrc &lt;&gt; 0.
+    MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
+            WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
+    EXIT.
+  ENDIF.
+
+  l_line = 1.
+  LOOP AT gt_pretty.
+    REPLACE &apos;FOR EACH&apos; IN gt_pretty-line WITH &apos;FOREACH&apos;.
+    WRITE: AT /5 l_line NO-GAP, &apos;:&apos;, gt_pretty.
+    ADD 1 TO l_line.
+  ENDLOOP.
+
+  SKIP.
+
+ENDFORM.                    &quot;fox_print_definition
+
+*&amp;---------------------------------------------------------------------*
+*&amp;      Form  f4_help
+*&amp;---------------------------------------------------------------------*
+FORM f4_help CHANGING c_value TYPE any.
+
+* Check if only one object is selected
+  DESCRIBE TABLE gt_help_value LINES g_count.
+  IF g_count = 0.
+*   No values for this selection
+    MESSAGE i802(dh).
+    EXIT.
+  ELSEIF g_count = 1.
+    READ TABLE gt_help_value INTO gs_help_value INDEX 1.
+    c_value = gs_help_value-value.
+  ELSE.
+*   Call F4 help
+    CALL FUNCTION &apos;F4IF_INT_TABLE_VALUE_REQUEST&apos;
+      EXPORTING
+        retfield        = &apos;VALUE&apos;
+        window_title    = &apos;Selection&apos;
+        value           = g_value
+        value_org       = &apos;S&apos;
+      TABLES
+        value_tab       = gt_help_value
+        return_tab      = gt_retval
+      EXCEPTIONS
+        parameter_error = 1
+        no_values_found = 2.
+    CHECK sy-subrc = 0.
+
+    READ TABLE gt_retval INTO gs_retval INDEX 1.
+    IF sy-subrc = 0.
+      c_value = gs_retval-fieldval.
+    ENDIF.
+  ENDIF.
+
+ENDFORM.                                                    &quot;f4_help
+
+*&amp;---------------------------------------------------------------------*
+*&amp;      Form  f4_srv
+*&amp;---------------------------------------------------------------------*
+FORM f4_srv CHANGING c_srv TYPE rsplf_srvnm.
+
+* Get filters
+  IF c_srv CA &apos;+*&apos;.
+    g_pattern = c_srv.
+  ELSE.
+    g_pattern = &apos;*&apos;.
+  ENDIF.
+  g_value = c_srv.
+
+  CALL FUNCTION &apos;RSPLFB_RFC_SRV_GETLIST&apos;
+    EXPORTING
+      i_searchstr          = g_pattern
+      i_searchcrit         = &apos;K&apos; &quot;key
+      i_objvers            = rs_c_objvers-active
+    TABLES
+      e_t_return           = gt_return
+      e_t_rfc_service_info = gt_service.
+
+* Fill help table
+  REFRESH gt_help_value.
+  LOOP AT gt_service INTO gs_service WHERE srvtypenm = const_fox.
+    CLEAR gs_help_value.
+    gs_help_value-value = gs_service-srvnm.
+    gs_help_value-icon = icon_calculation.
+    gs_help_value-txtlg = gs_service-txtlg.
+    IF gs_help_value-txtlg IS INITIAL.
+      gs_help_value-txtlg = gs_help_value-value.
+    ENDIF.
+    APPEND gs_help_value TO gt_help_value.
+  ENDLOOP.
+
+  PERFORM f4_help CHANGING c_srv.
+
+ENDFORM.                                                    &quot;f4_srv</source>
+</PROG>
