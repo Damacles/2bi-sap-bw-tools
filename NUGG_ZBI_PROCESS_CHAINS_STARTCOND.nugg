@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-16"?>
-<nugget name="ZBI_PROCESS_CHAINS_STARTCOND">
- <PROG NAME="ZBI_PROCESS_CHAINS_STARTCOND" VARCL="X" SUBC="1" CNAM="BE92304" CDAT="20110405" UNAM="BE92304" UDAT="20110410" VERN="000012" RMAND="100" RLOAD="E" FIXPT="X" SDATE="20110410" STIME="234914" IDATE="20110410" ITIME="234914" UCCHECK="X">
+<nugget name="NUGG_ZBI_PROCESS_CHAINS_STARTCOND.NUGG">
+ <PROG NAME="ZBI_PROCESS_CHAINS_STARTCOND" VARCL="X" SUBC="1" CNAM="BE92304" CDAT="20110405" UNAM="EXC060" UDAT="20130506" VERN="000017" RMAND="100" RLOAD="E" FIXPT="X" SDATE="20130506" STIME="123631" IDATE="20130506" ITIME="123631" UCCHECK="X">
   <textPool>
    <language SPRAS="E">
     <textElement ID="R" ENTRY="List Process Chain Start Conditions" LENGTH="35 "/>
@@ -71,7 +71,7 @@ ENDLOOP.
 sort lt_rspctrigger by meta startdttyp variante.
 delete lt_rspctrigger where variante is initial.
 
-WRITE :/ &apos;Chain Name                    &apos;, &apos;|API&apos; , &apos;|SCH&apos; ,&apos;|&apos;, &apos;Start Date&apos;,&apos;|&apos;, &apos;Start Time&apos;.
+WRITE :/ &apos;Chain Name                    &apos;, &apos;|API&apos; , &apos;|SCH&apos; ,&apos;|&apos;, &apos;Start Date&apos;,&apos;|&apos;, &apos;Strt Tim&apos;,&apos;|&apos;, &apos;Event ID&apos;.
 ULINE.
 loop at lt_rspctrigger into ls_rspctrigger.
   write: / ls_rspctrigger-variante, &apos;|&apos;.
@@ -79,6 +79,7 @@ loop at lt_rspctrigger into ls_rspctrigger.
   write: ls_rspctrigger-startdttyp, &apos; |&apos;..
   write: ls_rspctrigger-SDLSTRTDT, &apos;|&apos;..
   write: ls_rspctrigger-SDLSTRTTM, &apos;|&apos;..
+  write: ls_rspctrigger-eventid, &apos;|&apos;..
   ENDLOOP.</source>
  </PROG>
 </nugget>

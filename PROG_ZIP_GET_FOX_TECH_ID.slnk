@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-16"?>
+<PROG NAME="ZIP_GET_FOX_TECH_ID" VARCL="X" SUBC="1" CNAM="WXF7600" CDAT="20120418" UNAM="WXF7600" UDAT="20120418" VERN="000011" RSTAT="K" RMAND="001" RLOAD="N" FIXPT="X" SDATE="20120418" STIME="120739" IDATE="20120418" ITIME="120739" UCCHECK="X">
+ <textPool>
+  <language SPRAS="N">
+   <textElement ID="R" ENTRY="Get Fox technical ID" LENGTH="20 "/>
+  </language>
+ </textPool>
+ <source>*&amp;---------------------------------------------------------------------*
+*&amp; Report  ZIP_GET_FOX_TECH_ID
+*&amp;
+*&amp;---------------------------------------------------------------------*
+*&amp;
+*&amp;
+*&amp;---------------------------------------------------------------------*
+
+REPORT  ZIP_GET_FOX_TECH_ID.
+
+*DATA: v_aggl     TYPE RSINFOPROV,
+*      v_program  TYPE PROGRAMM,
+*      v_TS_FORML TYPE RSPLS_TS_FORML,
+*      v_TS_FCAT  TYPE RSPLS_TS_FORML_FCAT,
+*      v_R_MSG    TYPE REF TO CL_RSPLFU_MSG.
+*
+*PARAMETERS: p_fox TYPE RSPLF_SRVNM.
+*
+** Get aggregation level
+*SELECT SINGLE INFOPROV INTO v_aggl
+*                       FROM RSPLF_SRV
+*                       WHERE srvnm = p_fox.
+*
+** Regenerate FOX, make sure you get the new program ID.
+*
+*CALL FUNCTION &apos;RSPLFC_GENERATE_PROGRAMM&apos;
+*  EXPORTING
+*     I_TS_FORML       = v_TS_FORML
+*     I_SERVICE        = p_fox
+*     I_INFOPROV       = v_aggl
+*     I_TS_FCAT        = v_TS_FCAT
+*     I_R_MSG          = v_R_MSG
+*  IMPORTING
+*     E_GENPROG        = v_program
+*          .
+*WRITE: p_fox, &apos; :&apos;, v_program.
+
+PERFORM run.
+
+*&amp;---------------------------------------------------------------------*
+*&amp;      Form  run
+*&amp;---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+FORM run.
+
+  DATA:
+    l_t_repcat TYPE STANDARD TABLE OF rspls_repcat WITH DEFAULT KEY,
+    l_s_repcat TYPE rspls_repcat,
+    i_service  TYPE rsplf_srvnm.
+
+  SELECT * FROM rspls_repcat INTO TABLE l_t_repcat
+                             WHERE applclass = &apos;FUNC1&apos;.
+
+  LOOP AT l_t_repcat INTO l_s_repcat.
+    IMPORT i_service FROM DATA BUFFER l_s_repcat-repkey.
+    NEW-LINE.
+    WRITE: i_service, &apos; :&apos;,  l_s_repcat-reportname.
+  ENDLOOP.
+
+ENDFORM.                    &quot;run</source>
+</PROG>

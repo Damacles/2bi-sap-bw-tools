@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-16"?>
 <nugget name="ZBI_SCH_PROCESS_CHAINS">
- <PROG NAME="ZBI_SCH_PROCESS_CHAINS" VARCL="X" SUBC="1" CNAM="BE92304" CDAT="20110120" UNAM="BE92304" UDAT="20110120" VERN="000002" RMAND="100" RLOAD="E" FIXPT="X" SDATE="20110120" STIME="231921" IDATE="20110120" ITIME="231921" UCCHECK="X">
+ <PROG NAME="ZBI_SCH_PROCESS_CHAINS" VARCL="X" SUBC="1" CNAM="BE92304" CDAT="20110120" UNAM="EXC060" UDAT="20130614" VERN="000005" RMAND="100" RLOAD="E" FIXPT="X" SDATE="20130614" STIME="140137" IDATE="20130614" ITIME="140137" UCCHECK="X">
   <textPool>
    <language SPRAS="E">
     <textElement ID="R" ENTRY="BI Scheduled Process Chains" LENGTH="27 "/>
@@ -20,6 +20,7 @@ TYPES: BEGIN OF l_s_scheduled,
        chain      TYPE rspc_chain,
        sdlstrtdt  TYPE tbtco-sdlstrtdt,
        sdlstrttm  TYPE tbtco-sdlstrttm,
+       eventid    type tbtco-eventid,
        jobname    TYPE tbtco-jobname,
        jobcount   TYPE tbtco-jobcount,
        progname   TYPE tbtcp-progname,
@@ -32,7 +33,7 @@ DATA: l_t_scheduled TYPE STANDARD TABLE OF l_s_scheduled,
 
 FIELD-SYMBOLS    &lt;l_f_scheduled&gt; TYPE l_s_scheduled.
 
-SELECT a~jobname a~jobcount a~sdlstrtdt a~sdlstrttm b~progname b~variant
+SELECT a~jobname a~jobcount a~sdlstrtdt a~sdlstrttm a~eventid b~progname b~variant
 INTO CORRESPONDING FIELDS OF TABLE l_t_scheduled
    FROM tbtco AS a JOIN tbtcp AS b
               ON a~jobname = b~jobname AND
@@ -42,7 +43,7 @@ WHERE a~jobname = &apos;BI_PROCESS_TRIGGER&apos; AND
 
 SORT l_t_scheduled BY sdlstrtdt sdlstrttm ASCENDING.
 
-WRITE :/ &apos;Chain Name               &apos;, &apos;|&apos; ,&apos;Start Date&apos;, &apos;|&apos;, &apos;Start Time&apos;.
+WRITE :/ &apos;Chain Name               &apos;, &apos;|&apos; ,&apos;Start Date&apos;, &apos;|&apos;, &apos;Start Time&apos;,  &apos;|&apos;, &apos;After Event&apos;.
 
 ULINE.
 LOOP AT l_t_scheduled ASSIGNING &lt;l_f_scheduled&gt;.
@@ -64,7 +65,7 @@ LOOP AT l_t_scheduled ASSIGNING &lt;l_f_scheduled&gt;.
       &lt;l_f_scheduled&gt;-chain = l_w_valtab-low.
     ENDIF.
 
-    WRITE :/ &lt;l_f_scheduled&gt;-chain, &apos;|&apos;, &lt;l_f_scheduled&gt;-sdlstrtdt, &apos;|&apos; , &lt;l_f_scheduled&gt;-sdlstrttm.
+    WRITE :/ &lt;l_f_scheduled&gt;-chain, &apos;|&apos;, &lt;l_f_scheduled&gt;-sdlstrtdt, &apos;|&apos; , &lt;l_f_scheduled&gt;-sdlstrttm, &apos;  |&apos; , &lt;l_f_scheduled&gt;-eventid.
   ENDIF.
 ENDLOOP.
 ULINE.</source>
