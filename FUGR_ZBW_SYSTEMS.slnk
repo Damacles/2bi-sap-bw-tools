@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-16"?>
+<FUGR AREA="ZBW_SYSTEMS" SPRAS="E" AREAT="System Dependent Functions">
+ <functionGroupDocumentation/>
+ <mainprogram NAME="SAPLZBW_SYSTEMS" VARCL="X" DBAPL="S" DBNA="D$" SUBC="F" APPL="S" CNAM="EXC060" CDAT="20130219" UNAM="EXC060" UDAT="20130219" VERN="000002" RMAND="001" RLOAD="E" FIXPT="X" SDATE="20130621" STIME="153255" IDATE="20130219" ITIME="105706" LDBNAME="D$S" UCCHECK="X">
+  <textPool/>
+  <source>*******************************************************************
+*   System-defined Include-files.                                 *
+*******************************************************************
+  INCLUDE LZBW_SYSTEMSTOP.                   &quot; Global Data
+  INCLUDE LZBW_SYSTEMSUXX.                   &quot; Function Modules
+
+*******************************************************************
+*   User-defined Include-files (if necessary).                    *
+*******************************************************************
+* INCLUDE LZBW_SYSTEMSF...                   &quot; Subroutines
+* INCLUDE LZBW_SYSTEMSO...                   &quot; PBO-Modules
+* INCLUDE LZBW_SYSTEMSI...                   &quot; PAI-Modules
+* INCLUDE LZBW_SYSTEMSE...                   &quot; Events
+* INCLUDE LZBW_SYSTEMSP...                   &quot; Local class implement.</source>
+ </mainprogram>
+ <includeprograms>
+  <include NAME="LZBW_SYSTEMSTOP" DBAPL="S" DBNA="D$" SUBC="I" APPL="S" CNAM="EXC060" CDAT="20130219" UNAM="EXC060" UDAT="20130219" VERN="000002" RMAND="001" FIXPT="X" SDATE="20130219" STIME="105706" IDATE="20130219" ITIME="105706" LDBNAME="D$S" UCCHECK="X">
+   <include_source>FUNCTION-POOL ZBW_SYSTEMS.                  &quot;MESSAGE-ID ..
+
+* INCLUDE LZBW_SYSTEMSD...                   &quot; Local class definition</include_source>
+  </include>
+ </includeprograms>
+ <functionmodules>
+  <functionmodule NAME="ZBW_LOGSYS_REMOTE_GET" STEXT="Return System ID based on current env(D,T,P)">
+   <importing PARAMETER="I_SRC_SYS" DEFAULT="&apos;ECC&apos;" REFERENCE="X" TYP="CHAR3"/>
+   <exporting PARAMETER="E_SYSID" REFERENCE="X" TYP="CHAR10"/>
+   <exporting PARAMETER="E_SYSID2" REFERENCE="X" TYP="CHAR2"/>
+   <documentation PARAMETER="I_SRC_SYS" KIND="P" STEXT="3-Byte field" INDEX=" 001"/>
+   <documentation PARAMETER="E_SYSID" KIND="P" STEXT="Character Field Length = 10" INDEX=" 002"/>
+   <documentation PARAMETER="E_SYSID2" KIND="P" STEXT="Version Number Component" INDEX=" 003"/>
+   <fm_source_new>&quot; Returns the source system ID (ex: &apos;SIPCLNT001&apos;) based on the BW system ID
+  &quot; that is assumed ot be BID, BIT, BIP
+  &quot; Based on the value of i_tgt_sys the function returns the source system
+  &quot; corresponding to a given SAP environment (ECC, BW, APO...)
+
+
+  CASE i_src_sys.
+    WHEN &apos;ECC&apos;.
+      CASE sy-sysid.
+        WHEN &apos;BID&apos;.
+          e_sysid  = &apos;SI2CLNT111&apos;.
+        WHEN &apos;BIT&apos;.
+          e_sysid  = &apos;SIQCLNT001&apos;.
+        WHEN &apos;BIP&apos;.
+          e_sysid  = &apos;SIPCLNT001&apos;.
+        WHEN OTHERS.
+          &quot; Return exception?
+          e_sysid = &apos;&apos;.
+      ENDCASE.
+    WHEN &apos;BW&apos;.
+      CASE sy-sysid.
+        WHEN &apos;BID&apos;.
+          e_sysid  = &apos;BIDCLNT001&apos;.
+        WHEN &apos;BIT&apos;.
+          e_sysid  = &apos;BITCLNT001&apos;.
+        WHEN &apos;BIP&apos;.
+          e_sysid  = &apos;BIPCLNT001&apos;.
+        WHEN OTHERS.
+          &quot; Return exception?
+          e_sysid = &apos;&apos;.
+      ENDCASE.
+    WHEN &apos;SSM&apos;.
+      CASE sy-sysid.
+        WHEN &apos;BID&apos;.
+          e_sysid  = &apos;SMD_100&apos;.
+        WHEN &apos;BIT&apos;.
+          e_sysid  = &apos;SSM_100&apos;.
+        WHEN &apos;BIP&apos;.
+          e_sysid  = &apos;SSM_100&apos;.
+        WHEN OTHERS.
+          &quot; Return exception?
+          e_sysid = &apos;&apos;.
+      ENDCASE.
+    WHEN OTHERS.
+      &quot; Return exception?
+      e_sysid = &apos;&apos;.
+  ENDCASE.
+
+  if e_sysid &lt;&gt; &apos;&apos;.
+    select SINGLE SOURSYSID from  RSSOURSYSTEM
+      into e_sysid2
+      where logsys = e_sysid.
+    endif.</fm_source_new>
+   <functionModuleDocumentation/>
+  </functionmodule>
+  <functionmodule NAME="ZBW_PSA_TABLE_GET" STEXT="Get PSA Table for a Data Source">
+   <importing PARAMETER="I_DATASOURCE" REFERENCE="X" TYP="CHAR30"/>
+   <importing PARAMETER="I_SRC_SYS" DEFAULT="&apos;ECC&apos;" OPTIONAL="X" REFERENCE="X" TYP="CHAR3"/>
+   <exporting PARAMETER="E_PSA_TABLE" REFERENCE="X" TYP="CHAR16"/>
+   <documentation PARAMETER="I_DATASOURCE" KIND="P" STEXT="30 Characters" INDEX=" 001"/>
+   <documentation PARAMETER="I_SRC_SYS" KIND="P" STEXT="3-Byte field" INDEX=" 002"/>
+   <documentation PARAMETER="E_PSA_TABLE" KIND="P" STEXT="Character Field Length = 10" INDEX=" 003"/>
+   <fm_source>DATA:
+        lt_rsdsts type table of rsdsts,
+        ls_rsdsts type rsdsts,
+        zlogsys(10) TYPE c.
+
+  CALL FUNCTION &apos;ZBW_LOGSYS_REMOTE_GET&apos;
+    EXPORTING
+      i_src_sys = i_src_sys
+    IMPORTING
+      e_sysid   = zlogsys.
+
+  &quot; Get the latest PSA table for the source
+  SELECT * INTO table lt_rsdsts
+  FROM rsdsts
+    WHERE datasource EQ i_datasource
+      AND logsys EQ zlogsys
+      AND objvers = &apos;A&apos;.
+    IF sy-subrc = 0.
+      SORT lt_rsdsts BY psa_version DESCENDING.
+      READ TABLE lt_rsdsts INTO ls_rsdsts INDEX 1.
+      e_psa_table = ls_rsdsts-psa_table.
+    ENDIF.</fm_source>
+   <functionModuleDocumentation/>
+  </functionmodule>
+ </functionmodules>
+</FUGR>
