@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-16"?>
+<PROG NAME="ZBI_PROCESS_CHAINS_PARENTS" VARCL="X" SUBC="1" CNAM="EXC060" CDAT="20130808" UNAM="EXC060" UDAT="20130808" VERN="000012" RMAND="001" RLOAD="E" FIXPT="X" SDATE="20130808" STIME="140828" IDATE="20130808" ITIME="140828" UCCHECK="X">
+ <textPool>
+  <language SPRAS="E">
+   <textElement ID="R" ENTRY="List Process Chains calliing other Process Chains" LENGTH="49 "/>
+  </language>
+ </textPool>
+ <source>*&amp;---------------------------------------------------------------------*
+*&amp; Report  ZBI_PROCESS_CHAINS_PARENTS
+*&amp;
+*&amp;---------------------------------------------------------------------*
+*&amp;
+*&amp;
+*&amp;---------------------------------------------------------------------*
+
+REPORT  zbi_process_chains_parents.
+
+DATA:
+      lt_rspcchain TYPE STANDARD TABLE OF rspcchain,
+      ls_rspcchain_trigger TYPE rspcchain,
+      ls_rspcchain TYPE rspcchain.
+
+SELECT-OPTIONS s_pc FOR ls_rspcchain-chain_id.
+
+&quot; 1st get the corresponding Start Process variants
+
+SELECT * FROM rspcchain INTO TABLE lt_rspcchain
+  WHERE objvers = &apos;A&apos;
+    AND type = &apos;TRIGGER&apos;
+    AND variante IN s_pc.
+WRITE :/ &apos;Chain Name                | Parent Chain Name         | Start Process Variant          |&apos;.
+ULINE.
+
+LOOP AT lt_rspcchain INTO ls_rspcchain_trigger.
+
+  SELECT * FROM rspcchain INTO ls_rspcchain
+    WHERE objvers = &apos;A&apos;
+      AND type = &apos;CHAIN&apos;
+      AND variante = ls_rspcchain_trigger-variante.
+
+    WRITE: / ls_rspcchain_trigger-chain_id, &apos;|&apos;.
+    WRITE: ls_rspcchain-chain_id, &apos;|&apos;.
+    WRITE: ls_rspcchain-variante, &apos;|&apos;.
+  ENDSELECT.
+ENDLOOP.</source>
+</PROG>

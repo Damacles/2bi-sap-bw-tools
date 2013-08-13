@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="utf-16"?>
+<PROG NAME="ZBW_IDENTIFY_PSA" VARCL="X" SUBC="1" APPL="B" CNAM="EXC060" CDAT="20130128" UNAM="EXC060" UDAT="20130128" VERN="000003" RSTAT="K" RMAND="001" RLOAD="E" FIXPT="X" SDATE="20130128" STIME="135405" IDATE="20130128" ITIME="135405" UCCHECK="X">
+ <textPool>
+  <language SPRAS="E">
+   <textElement ID="R" ENTRY="PSA utility" LENGTH="11 "/>
+  </language>
+ </textPool>
+ <source>*&amp;---------------------------------------------------------------------*
+*&amp; Report  ZBW_IDENTIFY_PSA
+*&amp;
+*&amp;---------------------------------------------------------------------*
+*&amp;
+*&amp;
+*&amp;---------------------------------------------------------------------*
+
+REPORT  zbw_identify_psa.
+
+TABLES: rstsods.
+TYPE-POOLS: slis.
+TYPES: BEGIN OF ty_display,
+tabname TYPE rstsods-odsname,
+count  TYPE rscewcount,
+odsname(20)  TYPE c,
+records TYPE nrows,
+END  OF ty_display,
+BEGIN OF ty_rsreqicods,
+tabname  TYPE rsreqicods-tabname,
+timestamp  TYPE rsreqicods-timestamp,
+req_date  TYPE sy-datum,
+END  OF ty_rsreqicods,
+BEGIN OF ty_rstsods,
+odsname  TYPE rstsods-odsname,
+odstech  TYPE rstsods-odsname_tech,
+dateto TYPE rstsods-dateto,
+END  OF ty_rstsods.
+DATA:
+wa_display  TYPE ty_display,
+wa_rsreqicods  TYPE ty_rsreqicods,
+wa_rstsods  TYPE ty_rstsods,
+t_display  TYPE STANDARD TABLE OF ty_display INITIAL SIZE 0,
+t_rsreqicods  TYPE STANDARD TABLE OF ty_rsreqicods INITIAL SIZE 0,
+t_rstsods  TYPE STANDARD TABLE OF ty_rstsods INITIAL SIZE 0.
+SELECT-OPTIONS:
+s_tabnm FOR rstsods-odsname.
+PARAMETERS:
+p_date  LIKE sy-datum OBLIGATORY DEFAULT sy-datum,
+p_cnt  TYPE c AS CHECKBOX.
+
+START-OF-SELECTION.
+  DATA:
+lc_timestamp(14)  TYPE c,
+l_timestamp  TYPE rsreqicods-timestamp.
+  CONCATENATE p_date &apos;000000&apos; INTO lc_timestamp.
+  l_timestamp =  lc_timestamp.
+  SELECT tabname
+timestamp
+INTO TABLE t_rsreqicods
+FROM rsreqicods
+WHERE timestamp &lt; l_timestamp
+AND typ = &apos;O&apos; AND tabname IN s_tabnm.
+  IF sy-subrc &lt;&gt; 0.
+    WRITE: / &apos;No matching records found.&apos;(001).
+    EXIT.
+  ENDIF.
+  LOOP AT t_rsreqicods INTO wa_rsreqicods.
+    lc_timestamp = wa_rsreqicods-timestamp.
+    wa_rsreqicods-req_date = lc_timestamp(8).
+    MODIFY t_rsreqicods FROM wa_rsreqicods TRANSPORTING req_date.
+  ENDLOOP.
+  SELECT odsname
+  odsname_tech
+  dateto
+  INTO TABLE t_rstsods
+  FROM rstsods
+    WHERE odsname IN ( SELECT DISTINCT tabname FROM rsreqicods WHERE
+  timestamp &lt; l_timestamp AND typ = &apos;O&apos; AND tabname IN s_tabnm ).
+  SORT
+  t_rstsods BY odsname dateto.
+  LOOP AT t_rsreqicods INTO wa_rsreqicods.
+    CLEAR wa_display.
+    wa_display-tabname = wa_rsreqicods-tabname.
+    wa_display-count = 1.
+    READ TABLE t_rstsods WITH KEY odsname =  wa_rsreqicods-tabname
+    TRANSPORTING NO FIELDS BINARY SEARCH.
+    IF sy-subrc = 0.
+      LOOP AT t_rstsods INTO wa_rstsods FROM sy-tabix.
+        IF wa_rstsods-odsname &lt;&gt; wa_rsreqicods-tabname.
+          EXIT.
+        ENDIF.
+        IF
+        wa_rstsods-dateto &gt;= wa_rsreqicods-req_date.
+          wa_display-odsname = wa_rstsods-odstech.
+          EXIT.
+        ENDIF.
+      ENDLOOP.
+    ENDIF.
+    COLLECT wa_display INTO t_display.
+  ENDLOOP.
+  LOOP AT t_display INTO wa_display.
+    IF wa_display-odsname &lt;&gt; &apos;&apos;.
+      SELECT tabname
+INTO wa_display-odsname
+FROM dd02l
+UP TO 1 ROWS
+WHERE      tabname = wa_display-odsname.
+      ENDSELECT.
+      IF sy-subrc = 0.
+        IF p_cnt = &apos;X&apos;
+.
+          SELECT COUNT(*)
+INTO wa_display-records
+FROM (wa_display-odsname).
+        ENDIF.
+      ELSE.
+        CLEAR wa_display-records.
+        CONCATENATE &apos;(&apos; wa_display-odsname &apos;)&apos;
+        INTO wa_display-odsname
+        SEPARATED BY space.
+      ENDIF.
+      MODIFY t_display FROM wa_display.
+    ENDIF.
+  ENDLOOP.
+  IF p_cnt = &apos;X&apos;.
+    SORT t_display BY records DESCENDING.
+  ELSE.
+    SORT t_display BY count DESCENDING.
+  ENDIF.
+
+END-OF-SELECTION.
+  DATA:
+wa_fc  TYPE slis_fieldcat_alv,
+t_fc  TYPE STANDARD TABLE OF slis_fieldcat_alv INITIAL SIZE 0.
+  wa_fc-tabname = &apos;T_DISPLAY&apos;.
+  wa_fc-col_pos = 1.
+  wa_fc-fieldname = &apos;TABNAME&apos;.
+  wa_fc-seltext_s = wa_fc-seltext_m = &apos;PSA Name&apos;(005).
+  wa_fc-outputlen = 30.
+  APPEND wa_fc TO t_fc.
+  wa_fc-col_pos = 2.
+  wa_fc-fieldname = &apos;COUNT&apos;.
+  wa_fc-seltext_s = wa_fc-seltext_m = &apos;Num Requests&apos;(006).
+  wa_fc-outputlen = 12. APPEND
+wa_fc TO t_fc.
+  wa_fc-col_pos = 3.
+  wa_fc-fieldname = &apos;ODSNAME&apos;.
+  wa_fc-seltext_s =  wa_fc-seltext_m = &apos;Table Name&apos;(007).
+  wa_fc-outputlen = 20.
+  APPEND wa_fc TO t_fc.
+  IF p_cnt = &apos;X&apos;.
+    wa_fc-col_pos = 4.
+    wa_fc-fieldname = &apos;RECORDS&apos;.
+    wa_fc-seltext_s = wa_fc-seltext_m = &apos;Record Count&apos;(008).
+    wa_fc-outputlen = 20.
+    APPEND wa_fc TO t_fc.
+  ENDIF.
+  CALL FUNCTION &apos;REUSE_ALV_GRID_DISPLAY&apos;
+    EXPORTING
+      it_fieldcat   = t_fc[]
+    TABLES
+      t_outtab      = t_display[]
+    EXCEPTIONS
+      program_error = 1
+      OTHERS        = 2.
+  IF sy-subrc &lt;&gt; 0.
+    WRITE: / &apos;ALV Display Error:&apos;(003), sy-subrc.
+  ENDIF.</source>
+</PROG>
