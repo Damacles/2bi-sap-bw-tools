@@ -20,6 +20,9 @@ report  zbw_bex_transport_reqst.
 * V0.1  Release only works for BEx Transport Requests without subtasks
 
 data:
+      l_len type i,
+      l_counter type char4,
+      lt_e071 type table of e071,
       l_trkorr type trkorr,
       l_text type trexreqhd-text,
       l_message type tr004-msgtext,
@@ -59,6 +62,23 @@ select * from rsobexrequest into table lt_rsobexrequest
 loop at lt_rsobexrequest assigning &lt;s_rsobexrequest&gt;.
   if &lt;s_rsobexrequest&gt;-trkorr is not initial
     and p_reals = &apos;X&apos;.
+
+    &quot; Check 1st that it the bex request contains at least 1 object
+    ls_e070-trkorr = &lt;s_rsobexrequest&gt;-trkorr.
+    append ls_e070 to lt_e070.
+    select  * from e070 into ls_e070
+      where strkorr = &lt;s_rsobexrequest&gt;-trkorr.
+    append ls_e070 to lt_e070.
+      endselect.
+      select * from e071 into table lt_e071
+        FOR ALL ENTRIES IN lt_e070
+        where trkorr = lt_e070-trkorr.
+    if lt_e071 is initial.
+      NEW-LINE.
+      write: &apos;BEx Request&apos;, &lt;s_rsobexrequest&gt;-trkorr, &apos;is empty, skipping&apos;.
+      &quot;skip loop
+      continue.
+      endif.
 
     &quot; Check that request is not yet released
     clear ls_e070.
@@ -123,7 +143,9 @@ loop at lt_rsobexrequest assigning &lt;s_rsobexrequest&gt;.
       endif.
     endif.
   endif.
-
+**  l_len = strlen( &lt;s_rsobexrequest&gt;-trkorr ).
+**  l_len = l_len - 4.
+**l_counter = &lt;s_rsobexrequest&gt;-trkorr+l_len(4).
   &quot; Create request
   concatenate &apos;BEx Transport Request - &apos; &lt;s_rsobexrequest&gt;-devclass into  l_text RESPECTING BLANKS.
   call function &apos;TR_EXT_CREATE_REQUEST&apos;
