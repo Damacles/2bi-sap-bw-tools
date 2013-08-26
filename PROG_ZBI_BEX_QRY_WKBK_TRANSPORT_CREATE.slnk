@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-16"?>
-<PROG NAME="ZI_VERSION_MGT" VARCL="X" SUBC="1" APPL="B" CNAM="WXF7600" CDAT="20120105" UNAM="WXF7600" UDAT="20120123" VERN="000007" RSTAT="P" RMAND="001" RLOAD="E" FIXPT="X" SDATE="20120123" STIME="111525" IDATE="20120123" ITIME="111525" UCCHECK="X">
+<PROG NAME="ZBI_BEX_QRY_WKBK_TRANSPORT_CREATE" VARCL="X" SUBC="1" APPL="B" CNAM="WXF7600" CDAT="20120105" UNAM="X" UDAT="20120123" VERN="000007" RSTAT="P" RMAND="001" RLOAD="E" FIXPT="X" SDATE="20120123" STIME="111525" IDATE="20120123" ITIME="111525" UCCHECK="X">
  <textPool>
   <language SPRAS="E">
    <textElement ID="R" ENTRY="Version management" LENGTH="18 "/>
@@ -15,14 +15,14 @@
   </language>
  </textPool>
  <source>*&amp;---------------------------------------------------------------------*
-*&amp; Report  ZI_VERSION_MGT
+*&amp; Report  ZBI_BEX_QRY_WKBK_TRANSPORT_CREATE
 *&amp;
 *&amp;---------------------------------------------------------------------*
 *&amp;
 *&amp;
 *&amp;---------------------------------------------------------------------*
 
-REPORT  ZI_VERSION_MGT.
+REPORT  ZBI_BEX_QRY_WKBK_TRANSPORT_CREATE.
 
 *********************
 * Data declarations *
