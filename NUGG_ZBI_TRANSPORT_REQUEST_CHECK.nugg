@@ -1,0 +1,588 @@
+<?xml version="1.0" encoding="utf-16"?>
+<nugget name="ZBW_TRANSPORT_REQUEST_CHECK">
+ <PROG NAME="ZBI_TRANSPORT_REQUEST_CHECK" VARCL="X" SUBC="1" CNAM="EXC060" CDAT="20130821" UNAM="EXC060" UDAT="20130821" VERN="000015" RMAND="100" RLOAD="E" FIXPT="X" SDATE="20130821" STIME="163045" IDATE="20130821" ITIME="163045" UCCHECK="X">
+  <textPool>
+   <language SPRAS="E">
+    <textElement ID="I" KEY="T01" ENTRY="Query" LENGTH="5 "/>
+    <textElement ID="I" KEY="T02" ENTRY="Variable" LENGTH="8 "/>
+    <textElement ID="I" KEY="T03" ENTRY="Infopackage" LENGTH="11 "/>
+    <textElement ID="I" KEY="T04" ENTRY="DTP" LENGTH="21 "/>
+    <textElement ID="I" KEY="T05" ENTRY="Update Rule" LENGTH="11 "/>
+    <textElement ID="I" KEY="T06" ENTRY="TRFN Routine" LENGTH="12 "/>
+    <textElement ID="I" KEY="T07" ENTRY="TRFN Formula" LENGTH="12 "/>
+    <textElement ID="I" KEY="T08" ENTRY="UPDR Routine" LENGTH="12 "/>
+    <textElement ID="I" KEY="T09" ENTRY="UPDR Formula" LENGTH="12 "/>
+    <textElement ID="I" KEY="T10" ENTRY="UPDR Start Routine" LENGTH="18 "/>
+    <textElement ID="I" KEY="T11" ENTRY="UPDR Global Data Definition" LENGTH="27 "/>
+    <textElement ID="I" KEY="T98" ENTRY="Text not found" LENGTH="14 "/>
+    <textElement ID="I" KEY="T99" ENTRY="No longer exist" LENGTH="15 "/>
+    <textElement ID="R" ENTRY="ZBI_TRANSPORT_REQUEST_CHECK" LENGTH="29 "/>
+    <textElement ID="S" KEY="P_LANGU" ENTRY="        Language of Text Descriptions" LENGTH="37 "/>
+    <textElement ID="S" KEY="P_REMDUP" ENTRY="        Ignore Duplicates Objects" LENGTH="33 "/>
+    <textElement ID="S" KEY="P_RQST" ENTRY="D       ." LENGTH="20 "/>
+    <textElement ID="S" KEY="P_SUBTSK" ENTRY="        Sub-Task" LENGTH="16 "/>
+    <textElement ID="S" KEY="R_OBJ" ENTRY="D       ." LENGTH="19 "/>
+   </language>
+  </textPool>
+  <source>REPORT  zbi_transport_request_check.
+TYPE-POOLS: slis. &quot;ALV Declarations
+
+TYPES:
+  ty_t_trk TYPE TABLE OF zztrk.
+DATA :
+  ga_trk TYPE zztrk,
+  gt_trk TYPE ty_t_trk,
+  g_prgnm_70     TYPE sycprog.
+
+
+*&amp;---------------------------------------------------------------------*
+*&amp;  Selection Screen
+*&amp;---------------------------------------------------------------------*
+
+SELECT-OPTIONS p_rqst FOR ga_trk-trkorr.
+PARAMETERS: p_subtsk AS CHECKBOX DEFAULT &apos;X&apos;.
+
+SELECT-OPTIONS r_obj FOR ga_trk-object.
+*Checkbox to ignore duplicate objects.
+PARAMETERS: p_remdup AS CHECKBOX DEFAULT &apos;X&apos;.
+
+* Text languages sought
+PARAMETERS: p_langu TYPE langu DEFAULT &apos;E&apos;.
+
+*Retrieving data from a view table where request/task is equal to p_rqst.
+CONCATENATE sy-repid &apos;_70&apos; INTO g_prgnm_70.
+
+
+START-OF-SELECTION.
+  PERFORM f_getdata.
+  PERFORM f_listdata.
+***************************************************************************
+
+FORM f_getdata.
+  CONSTANTS:
+    c_perform(30) TYPE c VALUE &apos;GETDATA_&apos;.
+
+  DATA:
+    lt_trk_new TYPE ty_t_trk,
+    l_perform(40)  TYPE c.
+
+
+
+
+
+  &quot; Retrieve all objects listed in the parent requests
+  SELECT * FROM v_e071eu
+  INTO CORRESPONDING FIELDS OF TABLE gt_trk
+    WHERE trkorr IN p_rqst AND object IN r_obj.
+
+  &quot; Retrieve all objects listed in the child subtasks
+  IF p_subtsk IS NOT INITIAL.
+    SELECT * FROM v_e071eu
+    APPENDING CORRESPONDING FIELDS OF TABLE gt_trk
+      WHERE strkorr IN p_rqst AND object IN r_obj.
+  ENDIF.
+
+*when the checkbox removal of objects is checked, duplicate records of fields: pgmid, object and obj_name will be deleted
+  IF p_remdup EQ &apos;X&apos;.
+    SORT gt_trk STABLE BY pgmid object obj_name.
+    DELETE ADJACENT DUPLICATES FROM gt_trk COMPARING pgmid object obj_name.
+    CLEAR ga_trk.
+  ENDIF.
+
+  LOOP AT gt_trk INTO ga_trk.
+    CONCATENATE c_perform ga_trk-object INTO l_perform.
+    CASE ga_trk-object.
+      WHEN &apos;ELEM&apos; OR    &quot; Query elements
+           &apos;UPDR&apos; OR    &quot; Update Rule
+           &apos;ROUT&apos; OR    &quot; Routine for UPDR/TRFN
+           &apos;RSFO&apos; OR    &quot; Rule formula for UPDR/TRFN
+           &apos;ISIP&apos; OR    &quot; Infopackage
+           &apos;XLWB&apos;.
+        PERFORM (l_perform) IN PROGRAM (sy-repid)
+          USING p_langu
+          CHANGING ga_trk.
+      WHEN &apos;TRFN&apos; OR   &quot; Transformation
+           &apos;DTPA&apos;.     &quot; Data Transfer Process
+        PERFORM (l_perform)
+          IN PROGRAM (g_prgnm_70) IF FOUND
+          USING p_langu
+          CHANGING ga_trk.
+    ENDCASE.
+    append ga_trk to lt_trk_new.
+  ENDLOOP.
+  gt_trk = lt_trk_new.
+ENDFORM.                    &quot;f_getdata
+
+
+
+***************************************************************************
+FORM f_listdata.
+
+  DATA:
+    fieldcatalog TYPE slis_t_fieldcat_alv.
+
+  FIELD-SYMBOLS:
+    &lt;fs_cat&gt; TYPE slis_fieldcat_alv.
+
+** Call ABAP List Viewer (ALV)
+  CALL FUNCTION &apos;REUSE_ALV_FIELDCATALOG_MERGE&apos;
+    EXPORTING
+      i_program_name   = sy-repid
+      i_structure_name = &apos;zztrk&apos;
+      i_inclname       = sy-repid
+    CHANGING
+      ct_fieldcat      = fieldcatalog.
+
+  READ TABLE fieldcatalog WITH KEY fieldname = &apos;OBJ_NAME&apos; ASSIGNING &lt;fs_cat&gt;.
+  &lt;fs_cat&gt;-outputlen = &apos;30&apos;.
+  READ TABLE fieldcatalog WITH KEY fieldname = &apos;LOCKFLAG&apos; ASSIGNING &lt;fs_cat&gt;.
+  &lt;fs_cat&gt;-outputlen = &apos;1&apos;.
+  READ TABLE fieldcatalog WITH KEY fieldname = &apos;TRKORR&apos; ASSIGNING &lt;fs_cat&gt;.
+  &lt;fs_cat&gt;-outputlen = &apos;10&apos;.
+  READ TABLE fieldcatalog WITH KEY fieldname = &apos;STRKORR&apos; ASSIGNING &lt;fs_cat&gt;.
+  &lt;fs_cat&gt;-outputlen = &apos;10&apos;.
+  READ TABLE fieldcatalog WITH KEY fieldname = &apos;TXT1&apos; ASSIGNING &lt;fs_cat&gt;.
+  &lt;fs_cat&gt;-outputlen = &apos;20&apos;.
+  READ TABLE fieldcatalog WITH KEY fieldname = &apos;TXT2&apos; ASSIGNING &lt;fs_cat&gt;.
+  &lt;fs_cat&gt;-outputlen = &apos;20&apos;.
+  READ TABLE fieldcatalog WITH KEY fieldname = &apos;TXT3&apos; ASSIGNING &lt;fs_cat&gt;.
+  &lt;fs_cat&gt;-outputlen = &apos;20&apos;.
+  READ TABLE fieldcatalog WITH KEY fieldname = &apos;TXT4&apos; ASSIGNING &lt;fs_cat&gt;.
+  &lt;fs_cat&gt;-outputlen = &apos;20&apos;.
+  READ TABLE fieldcatalog WITH KEY fieldname = &apos;TXT5&apos; ASSIGNING &lt;fs_cat&gt;.
+  &lt;fs_cat&gt;-outputlen = &apos;20&apos;.
+
+  CALL FUNCTION &apos;REUSE_ALV_LIST_DISPLAY&apos;
+    EXPORTING
+      i_structure_name = &apos;zztrk&apos;
+      it_fieldcat      = fieldcatalog
+    TABLES
+      t_outtab         = gt_trk.
+
+ENDFORM.                    &quot;f_listdata
+
+**********************************
+
+FORM getdata_rout
+USING u_langu TYPE langu
+CHANGING wa_trk TYPE zztrk.
+  DATA: wa_rsupdrout TYPE rsupdrout,
+        wa_rsaroutt TYPE rsaroutt,
+        wa_rsupdinfo TYPE rsupdinfo.
+
+
+  &quot; Checks for TRFN Routine are done first by calling the same FORM in the BI 70
+  &quot; program. If no result is returned, checks for UPDR Routine are carried out.
+  PERFORM getdata_rout
+    IN PROGRAM (g_prgnm_70) IF FOUND
+    USING p_langu
+    CHANGING ga_trk.
+
+  &quot; If nothing was found in version 70, check if the object is a routine of
+  &quot; an Update Rule
+
+  &quot; Text description of routine in RSAROUTT-TXTLG with CODEID = OBJ_NAME
+  &quot; Active status and type (UR/TR) found in RSAROUT
+  &quot; Target IOBJ found in RSUPDROUT-ICINOBJNM with CODEID = OBJ_NAME
+  &quot; If RSUPDROUT-ROUTINE is 9998 then no target IOBJ, but Start Routine
+  &quot; If RSUPDROUT-ROUTINE is 9999 then no target IOBJ, but Global Data Definition
+  &quot; Parent UPDR found in RSUPDROUT-UPDID with CODEID = OBJ_NAME
+  &quot; UPDR info then available in RSUDPINFO
+  IF ga_trk-txt2 IS INITIAL.
+
+    SELECT SINGLE * FROM rsupdrout
+    INTO wa_rsupdrout
+    WHERE codeid = wa_trk-obj_name AND
+          objvers NE &apos;D&apos;.
+    IF sy-subrc = 0.
+      wa_trk-txt1 = text-t08.
+      wa_trk-txt2 = wa_rsupdrout-iciobjnm.
+      CASE wa_rsupdrout-routine.
+        WHEN &apos;9998&apos;.
+          wa_trk-txt1 = text-t10.
+        WHEN &apos;9999&apos;.
+          wa_trk-txt1 = text-t11.
+        WHEN OTHERS.
+          SELECT SINGLE * FROM rsaroutt
+          INTO wa_rsaroutt
+          WHERE codeid = wa_trk-obj_name AND
+              langu = u_langu AND
+              objvers NE &apos;D&apos;.
+          IF sy-subrc = 0.
+            wa_trk-txt3 = wa_rsaroutt-txtlg.
+          ELSE.
+            wa_trk-txt3 = text-t98.
+          ENDIF.
+      ENDCASE.
+      SELECT SINGLE * FROM rsupdinfo
+   INTO wa_rsupdinfo
+   WHERE updid = wa_rsupdrout-updid AND
+     objvers NE &apos;D&apos;.
+      wa_trk-txt4 = wa_rsupdinfo-infocube.
+      wa_trk-txt5 = wa_rsupdinfo-isource.
+    ELSE.
+      wa_trk-txt2 = text-t99.
+    ENDIF.
+
+
+  ENDIF.
+ENDFORM.                    &quot;GETDATA_ROUT
+
+*&amp;---------------------------------------------------------------------*
+*&amp;      Form  GETDATA_RSFO
+*&amp;---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*      --&gt;WA_TRK     text
+*----------------------------------------------------------------------*
+FORM getdata_rsfo
+USING u_langu TYPE langu
+CHANGING wa_trk TYPE zztrk.
+  DATA: wa_rsupdform TYPE rsupdform.
+
+  &quot; Checks for TRFN Formula are done first by calling the same FORM in the BI 70
+  &quot; program. If no result is returned, checks for UPDR Formula are carried out.
+  PERFORM getdata_rsfo
+    IN PROGRAM (g_prgnm_70) IF FOUND
+    CHANGING ga_trk.
+
+  &quot; If nothing was found in version 70, check if the object is a formula of
+  &quot; an Update Rule
+  IF ga_trk-txt2 IS INITIAL.
+
+    SELECT SINGLE * FROM rsupdform
+     INTO wa_rsupdform
+     WHERE updid = wa_trk-obj_name AND
+           objvers NE &apos;D&apos;.
+    IF sy-subrc = 0.
+      wa_trk-txt1 = text-t09.
+      wa_trk-txt2 = wa_rsupdform-formula.
+      wa_trk-txt3 = wa_rsupdform-iciobjnm.
+    ELSE.
+      wa_trk-txt2 = text-t99.
+    ENDIF.
+  ENDIF.
+ENDFORM.                    &quot;GETDATA_RSFO
+
+*&amp;---------------------------------------------------------------------*
+*&amp;      Form  GETDATA_UPDR
+*&amp;---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*      --&gt;WA_TRK     text
+*----------------------------------------------------------------------*
+FORM getdata_updr
+USING u_langu TYPE langu
+CHANGING wa_trk TYPE zztrk.
+
+  DATA:
+    wa_rsupdinfo TYPE rsupdinfo.
+  wa_trk-txt1 = text-t05.
+
+  SELECT SINGLE * FROM rsupdinfo
+  INTO wa_rsupdinfo
+  WHERE updid = wa_trk-obj_name AND
+        objvers NE &apos;D&apos;.
+  IF sy-subrc = 0.
+    wa_trk-txt2 = wa_rsupdinfo-isource.
+    wa_trk-txt3 = wa_rsupdinfo-infocube.
+    wa_trk-txt3 = wa_rsupdinfo-infocube.
+
+  ELSE.
+    wa_trk-txt2 = text-t99.
+  ENDIF.
+
+ENDFORM.                    &quot;GETDATA_UPDR
+
+*&amp;---------------------------------------------------------------------*
+*&amp;      Form  GETDATA_XLWB [Code Inserted by Raamiz]
+*&amp;---------------------------------------------------------------------*
+*      Getting the Texts Description for XLWB
+*----------------------------------------------------------------------*
+*      --&gt;WA_TRK     text
+*----------------------------------------------------------------------*
+
+
+FORM getdata_xlwb
+USING u_langu TYPE langu
+  CHANGING wa_trk TYPE zztrk.
+  wa_trk-txt1 = text-t05.
+
+  DATA: wa_other TYPE rsrwbindext.
+  SELECT SINGLE * FROM rsrwbindext
+  INTO wa_other
+  WHERE workbookid = wa_trk-obj_name AND
+                       objvers NE &apos;D&apos;.
+
+  IF sy-subrc = 0.
+    wa_trk-txt1 = wa_other-title.
+
+  ENDIF.
+
+ENDFORM.                    &quot;GETDATA_XLWB
+
+*&amp;---------------------------------------------------------------------*
+*&amp;      Form  GETDATA_ISIP
+*&amp;---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*      --&gt;WA_TRK     text
+*----------------------------------------------------------------------*
+FORM getdata_isip
+USING u_langu TYPE langu
+CHANGING wa_trk TYPE zztrk.
+
+  DATA:
+    wa_rsldpio TYPE rsldpio,
+    wa_rsldpiot TYPE rsldpiot.
+  wa_trk-txt1 = text-t03. &quot; Infopackage
+
+  SELECT SINGLE * FROM rsldpio
+    INTO wa_rsldpio
+    WHERE logdpid = wa_trk-obj_name.
+  IF sy-subrc = 0.
+    SELECT SINGLE * FROM rsldpiot
+    INTO wa_rsldpiot
+    WHERE langu = u_langu AND
+      logdpid = wa_trk-obj_name.
+    IF sy-subrc = 0.
+      wa_trk-txt2 = wa_rsldpiot-text.
+    ELSE.
+      wa_trk-txt2 = text-t98.
+    ENDIF.
+    wa_trk-txt3 = wa_rsldpio-source.
+    wa_trk-txt4 = wa_rsldpio-logsys.
+    wa_trk-txt5 = wa_rsldpio-oltpsource.
+  ELSE.
+    wa_trk-txt2 = text-t99.  &quot; Does not or no longer exist
+  ENDIF.
+ENDFORM.                    &quot;getdata_isip
+
+
+*&amp;---------------------------------------------------------------------*
+*&amp;      Form  getdata_elem
+*&amp;---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*      --&gt;WA_TRK     text
+*----------------------------------------------------------------------*
+FORM getdata_elem
+USING u_langu TYPE langu
+CHANGING wa_trk TYPE zztrk.
+
+  DATA:
+    l_child TYPE sysuuid_25,
+    l_parentid TYPE sysuuid_25,
+    l_parenttech TYPE rszcompid,
+    wa_rsrrepdir TYPE rsrrepdir,
+    wa_rszglobv  TYPE rszglobv,
+    wa_rszeltxref TYPE rszeltxref,
+    wa_rszelttxt TYPE rszelttxt,
+    wa_rszeltdir TYPE rszeltdir.
+
+* Find parent query
+  l_child = wa_trk-obj_name.
+  CALL FUNCTION &apos;ZBEX_ELT_PARENT_GET&apos;
+    EXPORTING
+      i_child           = l_child
+    IMPORTING
+      e_parent_id       = l_parentid
+      e_parent_techname = l_parenttech.
+
+  wa_trk-txt5 = l_parenttech.
+
+
+* Checkif the object is a query
+* By checking in RSRREPDIR
+  SELECT SINGLE * FROM rsrrepdir
+    INTO wa_rsrrepdir
+    WHERE comptype = &apos;REP&apos; AND
+          objvers = &apos;A&apos; AND
+          compuid  = wa_trk-obj_name.
+  IF sy-subrc = 0.
+    wa_trk-txt1 = text-t01.
+    wa_trk-txt2 = wa_rsrrepdir-compid.
+    wa_trk-txt3 = wa_rsrrepdir-infocube.
+    EXIT.
+  ENDIF.
+
+* Then check if it is a Variable by checking in RSZGLOBV
+  SELECT SINGLE * FROM rszglobv
+    INTO wa_rszglobv
+    WHERE varuniid = wa_trk-obj_name AND
+          objvers = &apos;A&apos;.
+  IF sy-subrc = 0.
+    wa_trk-txt1 = text-t02.
+    wa_trk-txt2 = wa_rszglobv-vnam.
+    wa_trk-txt3 = wa_rszglobv-iobjnm.
+    EXIT.
+  ENDIF.
+
+* Then look for query elements that are linked to parent
+* query via RSZELTXREF
+  SELECT SINGLE * FROM rszeltxref
+  INTO wa_rszeltxref
+  WHERE teltuid = wa_trk-obj_name AND objvers = &apos;A&apos;.
+  IF sy-subrc  = 0.
+    SELECT SINGLE * FROM rszelttxt
+        INTO wa_rszelttxt
+        WHERE eltuid = wa_rszeltxref-seltuid AND
+        objvers = &apos;A&apos; AND langu = u_langu.
+    SELECT SINGLE * FROM rsrrepdir
+    INTO wa_rsrrepdir
+    WHERE comptype = &apos;REP&apos; AND
+    objvers = &apos;A&apos; AND
+    compuid  = wa_rszeltxref-seltuid.
+    IF sy-subrc = 0.
+      wa_trk-txt1 = wa_rszeltxref-laytp.
+      wa_trk-txt2 = wa_rszelttxt-txtlg.
+      wa_trk-txt3 = wa_rsrrepdir-compid.
+      wa_trk-txt4 = wa_rsrrepdir-infocube.
+    ENDIF.
+  ENDIF.
+
+*SELECT SINGLE * FROM RSZELTDIR
+*  INTO wa_rszeltdir
+*  WHERE ELTUID = wa_trk-obj_name AND objvers = &apos;A&apos;.
+*
+*  if sy-subrc eq 0.
+*     case wa_rszeltdir-DEFTP.
+*       when &apos;VAR&apos;.
+*         wa_trk-txt1 = &apos;Variable&apos;.
+*       when &apos;REP&apos;.
+*         wa_trk-txt1 = &apos;Query&apos;.
+*       when &apos;SOB&apos;.
+*         wa_trk-txt1 = &apos;Filter&apos;.
+*       when &apos;STR&apos;.
+*         wa_trk-txt1 = &apos;Structure&apos;.
+*       when &apos;SEL&apos;.
+*         wa_trk-txt1 = &apos;Restricted Key Figure&apos;.
+*       when &apos;CKF&apos;.
+*         wa_trk-txt1 = &apos;Calculated Key Figure&apos;.
+*       when &apos;FML&apos;.
+*         wa_trk-txt1 = &apos;Formula&apos;.
+*       when &apos;NIL&apos;.
+*         wa_trk-txt1 = &apos;No Definition&apos;.
+*     endcase.
+*
+*
+*  wa_trk-txt2 = wa_rszeltdir-mapname.
+*  endif.
+*
+*  SELECT SINGLE * FROM rszeltxref
+*  INTO wa_rszeltxref
+*  WHERE teltuid = wa_trk-obj_name AND objvers = &apos;A&apos;.
+*  IF sy-subrc  = 0.
+*    wa_trk-txt3 = wa_rszeltxref-infocube.
+*  endif.
+*
+*    SELECT SINGLE * FROM rszelttxt
+*        INTO wa_rszelttxt
+*        WHERE eltuid = wa_rszeltxref-seltuid OR eltuid = wa_trk-obj_name AND
+*        objvers = &apos;A&apos; AND langu = u_langu.
+*      IF SY-SUBRC EQ 0.
+*        wa_trk-txt4 = wa_rszelttxt-txtlg.
+*      ENDIF.
+
+ENDFORM.                    &quot;getdata_elem</source>
+ </PROG>
+ <PROG NAME="ZBI_TRANSPORT_REQUEST_CHECK_70" VARCL="X" SUBC="1" CNAM="EXC060" CDAT="20130821" UNAM="EXC060" UDAT="20130822" VERN="000011" RMAND="001" RLOAD="E" FIXPT="X" SDATE="20130822" STIME="110805" IDATE="20130822" ITIME="110805" UCCHECK="X">
+  <textPool>
+   <language SPRAS="E">
+    <textElement ID="R" ENTRY="ZBI_TRANSPORT_REQUEST_CHECK_70" LENGTH="30 "/>
+   </language>
+  </textPool>
+  <source>*&amp;---------------------------------------------------------------------*
+*&amp; Report  ZBI_TRANSPORT_REQUEST_CHECK_70
+*&amp;
+*&amp;---------------------------------------------------------------------*
+*&amp;
+*&amp;
+*&amp;---------------------------------------------------------------------*
+
+REPORT  zbi_transport_request_check_70.
+
+*&amp;---------------------------------------------------------------------*
+*&amp;      Form  GETDATA_DTPA
+*&amp;---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*      --&gt;WA_TRK     text
+*----------------------------------------------------------------------*
+FORM getdata_dtpa
+USING u_langu TYPE langu
+CHANGING wa_trk TYPE zztrk.
+  DATA:
+        ls_rsbkdtp TYPE rsbkdtp,
+        ls_rsbkdtpt TYPE rsbkdtpt.
+
+  &quot; Checks for DTPA
+  SELECT SINGLE * FROM rsbkdtp INTO ls_rsbkdtp
+    WHERE objvers = &apos;A&apos;
+      AND dtp = wa_trk-obj_name.
+  IF sy-subrc = 0.
+    CONCATENATE ls_rsbkdtp-srctp &apos;:&apos; ls_rsbkdtp-src INTO wa_trk-txt2.
+    CONCATENATE ls_rsbkdtp-tgttp  &apos;:&apos; ls_rsbkdtp-tgt INTO wa_trk-txt3.
+    SELECT SINGLE * FROM rsbkdtpt INTO ls_rsbkdtpt
+      WHERE objvers = &apos;A&apos;
+      AND dtp = wa_trk-obj_name
+      AND langu = u_langu.
+    IF sy-subrc = 0.
+      wa_trk-txt1 = ls_rsbkdtpt-txtlg.
+    ENDIF.
+  ELSE.
+    wa_trk-txt1 = &apos;Not found in RSBKDTP&apos;.
+    wa_trk-txt2 = &apos;Probably deleted&apos;.
+  ENDIF.
+ENDFORM.                    &quot;GETDATA_RSFO
+*&amp;---------------------------------------------------------------------*
+*&amp;      Form  getdata_trfn
+*&amp;---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*      --&gt;U_LANGU    text
+*      --&gt;WA_TRK     text
+*----------------------------------------------------------------------*
+FORM getdata_trfn
+USING u_langu TYPE langu
+CHANGING wa_trk TYPE zztrk.
+
+  DATA: ls_rstran TYPE rstran.
+
+  SELECT SINGLE * FROM rstran
+    INTO ls_rstran
+    WHERE tranid = wa_trk-obj_name
+      AND objvers = &apos;A&apos;.
+
+  IF sy-subrc = 0.
+    wa_trk-txt1 = ls_rstran-sourcetype.
+    IF ls_rstran-sourcesubtype IS NOT INITIAL.
+      CONCATENATE wa_trk-txt1 &apos;/&apos; ls_rstran-sourcesubtype INTO wa_trk-txt1.
+    ENDIF.
+    wa_trk-txt2 = ls_rstran-sourcename.
+    wa_trk-txt3 = ls_rstran-targettype.
+    IF ls_rstran-targetsubtype IS NOT INITIAL.
+      CONCATENATE wa_trk-txt3 &apos;/&apos; ls_rstran-targetsubtype INTO wa_trk-txt3.
+    ENDIF.
+    wa_trk-txt4 = ls_rstran-targetname.
+  ELSE.
+    wa_trk-txt1 = &apos;Not found in RSTRAN&apos;.
+    wa_trk-txt2 = &apos;Probably deleted&apos;.
+  ENDIF.
+ENDFORM.                    &quot;</source>
+ </PROG>
+ <TABL TABNAME="ZZTRK" DDLANGUAGE="E" TABCLASS="INTTAB" DATMIN="0000000000" DATMAX="0000000000" DATAVG="0000000000" DDTEXT="Structure for ZSE01 program" AUTHCLASS="00" AS4USER="EXC060" AS4DATE="20130821" AS4TIME="125939" PROZPUFF="000" EXCLASS="1">
+  <dd09l AS4VERS="0000" SCHFELDANZ="000" AS4DATE="00000000" AS4TIME="000000"/>
+  <dd03p TABNAME="ZZTRK" FIELDNAME="TRKORR" DDLANGUAGE="E" POSITION="0001" ROLLNAME="TRKORR" ADMINFIELD="0" INTTYPE="C" INTLEN="000040" DOMNAME="TRKORR" ROUTPUTLEN="000000" HEADLEN="15" SCRLEN1="10" SCRLEN2="15" SCRLEN3="20" DTELMASTER="D" DATATYPE="CHAR" LENG="000020" OUTPUTLEN="000020" DECIMALS="000000" ENTITYTAB="E070" MASK="  CHARE" MASKLEN="0000" DDTEXT="Request/Task" REPTEXT="Request/Task" SCRTEXT_S="Request" SCRTEXT_M="Request/Task" SCRTEXT_L="Request/Task" DOMNAME3L="TRKORR" DEPTH="00" COMPTYPE="E" DEFFDNAME="AUFTRAGS-NUMMER" EXCLASS="0" DBPOSITION="0000" OUTPUTSTYLE="00" STRORLOCPOS="00"/>
+  <dd03p TABNAME="ZZTRK" FIELDNAME="STRKORR" DDLANGUAGE="E" POSITION="0002" ROLLNAME="STRKORR" ADMINFIELD="0" INTTYPE="C" INTLEN="000040" DOMNAME="TRKORR" ROUTPUTLEN="000000" HEADLEN="22" SCRLEN1="00" SCRLEN2="00" SCRLEN3="20" DTELMASTER="D" DATATYPE="CHAR" LENG="000020" OUTPUTLEN="000020" DECIMALS="000000" ENTITYTAB="E070" MASK="  CHARE" MASKLEN="0000" DDTEXT="Higher-Level Request" REPTEXT="Higher-Level Request" SCRTEXT_L="Higher-Level Request" DOMNAME3L="TRKORR" DEPTH="00" COMPTYPE="E" EXCLASS="0" DBPOSITION="0000" OUTPUTSTYLE="00" STRORLOCPOS="00"/>
+  <dd03p TABNAME="ZZTRK" FIELDNAME="PGMID" DDLANGUAGE="E" POSITION="0003" ROLLNAME="PGMID" ADMINFIELD="0" INTTYPE="C" INTLEN="000008" DOMNAME="PGMID" ROUTPUTLEN="000000" HEADLEN="04" SCRLEN1="10" SCRLEN2="15" SCRLEN3="20" DTELMASTER="D" DATATYPE="CHAR" LENG="000004" OUTPUTLEN="000004" DECIMALS="000000" MASK="  CHARE" MASKLEN="0000" DDTEXT="Program ID in Requests and Tasks" REPTEXT="PgID" SCRTEXT_S="Prog. ID" SCRTEXT_M="Program ID" SCRTEXT_L="Program ID" DOMNAME3L="PGMID" DEPTH="00" COMPTYPE="E" EXCLASS="0" DBPOSITION="0000" OUTPUTSTYLE="00" STRORLOCPOS="00"/>
+  <dd03p TABNAME="ZZTRK" FIELDNAME="OBJECT" DDLANGUAGE="E" POSITION="0004" ROLLNAME="TROBJTYPE" ADMINFIELD="0" INTTYPE="C" INTLEN="000008" DOMNAME="OBJECT" ROUTPUTLEN="000000" HEADLEN="04" SCRLEN1="10" SCRLEN2="15" SCRLEN3="20" DTELMASTER="D" DATATYPE="CHAR" LENG="000004" OUTPUTLEN="000004" DECIMALS="000000" MASK="  CHARE" MASKLEN="0000" DDTEXT="Object Type" REPTEXT="Obj." SCRTEXT_S="Obj. Type" SCRTEXT_M="Object Type" SCRTEXT_L="Object Type" DOMNAME3L="OBJECT" SHLPORIGIN="D" SHLPNAME="SCTSOBJECT" SHLPFIELD="OBJECT" DEPTH="00" COMPTYPE="E" EXCLASS="0" DBPOSITION="0000" OUTPUTSTYLE="00" STRORLOCPOS="00"/>
+  <dd03p TABNAME="ZZTRK" FIELDNAME="OBJ_NAME" DDLANGUAGE="E" POSITION="0005" ROLLNAME="TROBJ_NAME" ADMINFIELD="0" INTTYPE="C" INTLEN="000240" DOMNAME="TROBJ_NAME" ROUTPUTLEN="000000" HEADLEN="55" SCRLEN1="10" SCRLEN2="20" SCRLEN3="10" DTELMASTER="D" DATATYPE="CHAR" LENG="000120" OUTPUTLEN="000120" DECIMALS="000000" MASK="  CHARE" MASKLEN="0000" DDTEXT="Object Name in Object List" REPTEXT="Object Name" SCRTEXT_S="Object" SCRTEXT_M="Object Name" SCRTEXT_L="Obj. Name" DOMNAME3L="TROBJ_NAME" DEPTH="00" COMPTYPE="E" EXCLASS="0" DBPOSITION="0000" OUTPUTSTYLE="00" STRORLOCPOS="00"/>
+  <dd03p TABNAME="ZZTRK" FIELDNAME="LOCKFLAG" DDLANGUAGE="E" POSITION="0006" ROLLNAME="LOCKFLAG" ADMINFIELD="0" INTTYPE="C" INTLEN="000002" DOMNAME="LOCKFLAG" ROUTPUTLEN="000000" HEADLEN="00" SCRLEN1="10" SCRLEN2="15" SCRLEN3="20" DTELMASTER="D" DATATYPE="CHAR" LENG="000001" OUTPUTLEN="000001" DECIMALS="000000" VALEXI="X" MASK="  CHARE" MASKLEN="0000" DDTEXT="Lock status or import status of an object entry" SCRTEXT_S="Status" SCRTEXT_M="Status" SCRTEXT_L="Lock/Import Status" DOMNAME3L="LOCKFLAG" SHLPORIGIN="F" DEPTH="00" COMPTYPE="E" EXCLASS="0" DBPOSITION="0000" OUTPUTSTYLE="00" STRORLOCPOS="00"/>
+  <dd03p TABNAME="ZZTRK" FIELDNAME="TXT1" DDLANGUAGE="E" POSITION="0007" ROLLNAME="/OSP/DT_LONG_TXT" ADMINFIELD="0" INTTYPE="C" INTLEN="000120" DOMNAME="TEXT60" ROUTPUTLEN="000000" HEADLEN="55" SCRLEN1="10" SCRLEN2="16" SCRLEN3="20" DTELMASTER="E" DATATYPE="CHAR" LENG="000060" OUTPUTLEN="000060" DECIMALS="000000" LOWERCASE="X" MASK="  CHARE" MASKLEN="0000" DDTEXT="Long Description" REPTEXT="Long description" SCRTEXT_S="Descript." SCRTEXT_M="Long description" SCRTEXT_L="Long description" DOMNAME3L="TEXT60" DEPTH="00" COMPTYPE="E" EXCLASS="0" DBPOSITION="0000" OUTPUTSTYLE="00" STRORLOCPOS="00"/>
+  <dd03p TABNAME="ZZTRK" FIELDNAME="TXT2" DDLANGUAGE="E" POSITION="0008" ROLLNAME="/OSP/DT_LONG_TXT" ADMINFIELD="0" INTTYPE="C" INTLEN="000120" DOMNAME="TEXT60" ROUTPUTLEN="000000" HEADLEN="55" SCRLEN1="10" SCRLEN2="16" SCRLEN3="20" DTELMASTER="E" DATATYPE="CHAR" LENG="000060" OUTPUTLEN="000060" DECIMALS="000000" LOWERCASE="X" MASK="  CHARE" MASKLEN="0000" DDTEXT="Long Description" REPTEXT="Long description" SCRTEXT_S="Descript." SCRTEXT_M="Long description" SCRTEXT_L="Long description" DOMNAME3L="TEXT60" DEPTH="00" COMPTYPE="E" EXCLASS="0" DBPOSITION="0000" OUTPUTSTYLE="00" STRORLOCPOS="00"/>
+  <dd03p TABNAME="ZZTRK" FIELDNAME="TXT3" DDLANGUAGE="E" POSITION="0009" ROLLNAME="/OSP/DT_LONG_TXT" ADMINFIELD="0" INTTYPE="C" INTLEN="000120" DOMNAME="TEXT60" ROUTPUTLEN="000000" HEADLEN="55" SCRLEN1="10" SCRLEN2="16" SCRLEN3="20" DTELMASTER="E" DATATYPE="CHAR" LENG="000060" OUTPUTLEN="000060" DECIMALS="000000" LOWERCASE="X" MASK="  CHARE" MASKLEN="0000" DDTEXT="Long Description" REPTEXT="Long description" SCRTEXT_S="Descript." SCRTEXT_M="Long description" SCRTEXT_L="Long description" DOMNAME3L="TEXT60" DEPTH="00" COMPTYPE="E" EXCLASS="0" DBPOSITION="0000" OUTPUTSTYLE="00" STRORLOCPOS="00"/>
+  <dd03p TABNAME="ZZTRK" FIELDNAME="TXT4" DDLANGUAGE="E" POSITION="0010" ROLLNAME="/OSP/DT_LONG_TXT" ADMINFIELD="0" INTTYPE="C" INTLEN="000120" DOMNAME="TEXT60" ROUTPUTLEN="000000" HEADLEN="55" SCRLEN1="10" SCRLEN2="16" SCRLEN3="20" DTELMASTER="E" DATATYPE="CHAR" LENG="000060" OUTPUTLEN="000060" DECIMALS="000000" LOWERCASE="X" MASK="  CHARE" MASKLEN="0000" DDTEXT="Long Description" REPTEXT="Long description" SCRTEXT_S="Descript." SCRTEXT_M="Long description" SCRTEXT_L="Long description" DOMNAME3L="TEXT60" DEPTH="00" COMPTYPE="E" EXCLASS="0" DBPOSITION="0000" OUTPUTSTYLE="00" STRORLOCPOS="00"/>
+  <dd03p TABNAME="ZZTRK" FIELDNAME="TXT5" DDLANGUAGE="E" POSITION="0011" ROLLNAME="/OSP/DT_LONG_TXT" ADMINFIELD="0" INTTYPE="C" INTLEN="000120" DOMNAME="TEXT60" ROUTPUTLEN="000000" HEADLEN="55" SCRLEN1="10" SCRLEN2="16" SCRLEN3="20" DTELMASTER="E" DATATYPE="CHAR" LENG="000060" OUTPUTLEN="000060" DECIMALS="000000" LOWERCASE="X" MASK="  CHARE" MASKLEN="0000" DDTEXT="Long Description" REPTEXT="Long description" SCRTEXT_S="Descript." SCRTEXT_M="Long description" SCRTEXT_L="Long description" DOMNAME3L="TEXT60" DEPTH="00" COMPTYPE="E" EXCLASS="0" DBPOSITION="0000" OUTPUTSTYLE="00" STRORLOCPOS="00"/>
+ </TABL>
+</nugget>

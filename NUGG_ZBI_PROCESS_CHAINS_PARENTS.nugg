@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="utf-16"?>
+<nugget name="ZBI_PROCESS_CHAINS_PARENTS2">
+ <PROG NAME="ZBI_PROCESS_CHAINS_PARENTS" VARCL="X" SUBC="1" CNAM="EXC060" CDAT="20130808" UNAM="EXC060" UDAT="20130905" VERN="000028" RMAND="001" RLOAD="E" FIXPT="X" SDATE="20130905" STIME="135845" IDATE="20130905" ITIME="135845" UCCHECK="X">
+  <textPool>
+   <language SPRAS="E">
+    <textElement ID="R" ENTRY="List Process Chains calliing other Process Chains" LENGTH="49 "/>
+   </language>
+  </textPool>
+  <source>*&amp;---------------------------------------------------------------------*
+*&amp; Report  ZBI_PROCESS_CHAINS_PARENTS
+*&amp;
+*&amp;---------------------------------------------------------------------*
+*&amp;
+*&amp;
+*&amp;---------------------------------------------------------------------*
+
+REPORT  zbi_process_chains_parents.
+
+DATA:
+      lt_chains TYPE bapiret2_t,
+      ls_chain TYPE bapiret2,
+      ls_rspcchain TYPE rspcchain,
+      lt_rspcchain TYPE STANDARD TABLE OF rspcchain.
+
+SELECT-OPTIONS s_pc FOR ls_rspcchain-chain_id.
+SELECT * FROM rspcchain INTO TABLE lt_rspcchain
+  WHERE objvers = &apos;A&apos;
+    AND type = &apos;TRIGGER&apos;
+    AND chain_id IN s_pc.
+
+LOOP AT lt_rspcchain INTO ls_rspcchain.
+  ls_chain-message_v1 = ls_rspcchain-chain_id.
+  APPEND ls_chain TO lt_chains.
+ENDLOOP.
+
+CALL FUNCTION &apos;ZBW_PC_ANCESTORS_GET&apos;
+  CHANGING
+    ct_chains = lt_chains.
+
+LOOP AT lt_chains INTO ls_chain.
+  IF ls_chain-row = &apos;0&apos;.
+    NEW-LINE.SKIP.
+  ENDIF.
+    WRITE: / &apos;  &apos;.
+  DO ls_chain-row TIMES.
+    WRITE: &apos;  &apos;.
+  ENDDO.
+  IF ls_chain-row &gt; 0.
+    WRITE: &apos;&lt;==&apos;.
+  ENDIF.
+  WRITE: ls_chain-message_v1. &quot;&apos;, &apos;|&apos;.
+*    WRITE: ls_chain-row, &apos;|&apos;.
+ENDLOOP.</source>
+ </PROG>
+ <FUGR AREA="ZBW_PC_PARENTS" SPRAS="E" AREAT="ZBW_PC_PARENTS">
+  <functionGroupDocumentation/>
+  <mainprogram NAME="SAPLZBW_PC_PARENTS" VARCL="X" DBAPL="S" DBNA="D$" SUBC="F" APPL="S" CNAM="EXC060" CDAT="20130905" UNAM="EXC060" UDAT="20130905" VERN="000002" RMAND="001" RLOAD="E" FIXPT="X" SDATE="20130905" STIME="134118" IDATE="20130905" ITIME="110005" LDBNAME="D$S" UCCHECK="X">
+   <textPool/>
+   <source>*******************************************************************
+*   System-defined Include-files.                                 *
+*******************************************************************
+  INCLUDE LZBW_PC_PARENTSTOP.                &quot; Global Data
+  INCLUDE LZBW_PC_PARENTSUXX.                &quot; Function Modules
+
+*******************************************************************
+*   User-defined Include-files (if necessary).                    *
+*******************************************************************
+* INCLUDE LZBW_PC_PARENTSF...                &quot; Subroutines
+* INCLUDE LZBW_PC_PARENTSO...                &quot; PBO-Modules
+* INCLUDE LZBW_PC_PARENTSI...                &quot; PAI-Modules
+* INCLUDE LZBW_PC_PARENTSE...                &quot; Events
+* INCLUDE LZBW_PC_PARENTSP...                &quot; Local class implement.</source>
+  </mainprogram>
+  <includeprograms>
+   <include NAME="LZBW_PC_PARENTSTOP" DBAPL="S" DBNA="D$" SUBC="I" APPL="S" CNAM="EXC060" CDAT="20130905" UNAM="EXC060" UDAT="20130905" VERN="000002" RMAND="001" FIXPT="X" SDATE="20130905" STIME="110005" IDATE="20130905" ITIME="110005" LDBNAME="D$S" UCCHECK="X">
+    <include_source>FUNCTION-POOL ZBW_PC_PARENTS.               &quot;MESSAGE-ID ..
+
+* INCLUDE LZBW_PC_PARENTSD...                &quot; Local class definition</include_source>
+   </include>
+  </includeprograms>
+  <functionmodules>
+   <functionmodule NAME="ZBW_PC_PARENTS_GET" STEXT="ZBW_PC_PARENTS_GET">
+    <importing PARAMETER="I_CHAIN_ID" REFERENCE="X" TYP="RSPC_CHAIN"/>
+    <exporting PARAMETER="ET_PARENTS" REFERENCE="X" TYP="RSB_T_PCCHAIN"/>
+    <documentation PARAMETER="I_CHAIN_ID" KIND="P" STEXT="Process Chain" INDEX=" 001"/>
+    <documentation PARAMETER="ET_PARENTS" KIND="P" STEXT="Process Chain Table for Third-Party API" INDEX=" 002"/>
+    <fm_source>data:
+      lt_rspcchain type standard table of rspcchain,
+      ls_rspcchain_trigger type rspcchain,
+      ls_rspcchain type rspcchain.
+
+refresh et_parents.
+
+&quot; 1st get the corresponding Start Process variants
+
+select * from rspcchain into table lt_rspcchain
+  where objvers = &apos;A&apos;
+    and type = &apos;TRIGGER&apos;
+    and chain_id = i_chain_id.
+
+loop at lt_rspcchain into ls_rspcchain_trigger.
+
+  select * from rspcchain into ls_rspcchain
+    where objvers = &apos;A&apos;
+      and type = &apos;CHAIN&apos;
+      and variante = ls_rspcchain_trigger-variante.
+
+    append ls_rspcchain-chain_id to et_parents.
+  endselect.
+endloop.</fm_source>
+    <functionModuleDocumentation/>
+   </functionmodule>
+   <functionmodule NAME="ZBW_PC_ANCESTORS_GET" STEXT="ZBW_PC_ANCESTORS_GET">
+    <changing PARAMETER="CT_CHAINS" REFERENCE="X" TYP="BAPIRET2_T"/>
+    <documentation PARAMETER="CT_CHAINS" KIND="P" STEXT="Return parameter table" INDEX=" 001"/>
+    <fm_source>DATA:
+        ls_parent TYPE rspc_chain,
+        ls_child TYPE rspc_chain,
+        lt_parents TYPE rsb_t_pcchain,
+        l_recurse TYPE flag,
+        ls_chain TYPE bapiret2,
+        ls_maxlvl TYPE bapiret2,
+        ls_newlvl TYPE bapiret2,
+        lt_chains_new TYPE bapiret2_t,
+        lt_chains_oldest TYPE bapiret2_t.
+
+  lt_chains_oldest = ct_chains.
+  SORT lt_chains_oldest BY row DESCENDING.
+  READ TABLE lt_chains_oldest INTO ls_maxlvl INDEX 1.
+  ls_newlvl-row = ls_maxlvl-row + 1.
+  LOOP AT ct_chains INTO ls_chain.
+    APPEND ls_chain TO lt_chains_new.
+    IF ls_chain-row = ls_maxlvl-row.
+      ls_child = ls_chain-message_v1.
+      CALL FUNCTION &apos;ZBW_PC_PARENTS_GET&apos;
+        EXPORTING
+          i_chain_id = ls_child
+        IMPORTING
+          et_parents = lt_parents.
+      LOOP AT lt_parents INTO ls_parent.
+        ls_chain-message_v1 = ls_parent.
+        ls_chain-row = ls_newlvl-row.
+        APPEND ls_chain TO lt_chains_new.
+        l_recurse = &apos;X&apos;.
+      ENDLOOP.
+    ENDIF.
+  ENDLOOP.
+
+  IF l_recurse = &apos;X&apos;.
+    CALL FUNCTION &apos;ZBW_PC_ANCESTORS_GET&apos;
+      CHANGING
+        ct_chains = lt_chains_new.
+  ENDIF.
+    ct_chains = lt_chains_new.</fm_source>
+    <functionModuleDocumentation/>
+   </functionmodule>
+  </functionmodules>
+ </FUGR>
+</nugget>
