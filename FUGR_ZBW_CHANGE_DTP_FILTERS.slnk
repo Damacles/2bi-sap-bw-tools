@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="utf-16"?>
+<FUGR AREA="ZBW_CHANGE_DTP_FILTERS" SPRAS="E" AREAT="ZBW_CHANGE_DTP_FILTERS">
+ <functionGroupDocumentation/>
+ <mainprogram NAME="SAPLZBW_CHANGE_DTP_FILTERS" VARCL="X" DBAPL="S" DBNA="D$" SUBC="F" APPL="S" CNAM="EXC060" CDAT="20131104" UNAM="EXC060" UDAT="20131104" VERN="000002" RMAND="001" RLOAD="E" FIXPT="X" SDATE="20131104" STIME="110031" IDATE="20131104" ITIME="110031" LDBNAME="D$S" UCCHECK="X">
+  <textPool/>
+  <source>*******************************************************************
+*   System-defined Include-files.                                 *
+*******************************************************************
+  INCLUDE LZBW_CHANGE_DTP_FILTERSTOP.        &quot; Global Data
+  INCLUDE LZBW_CHANGE_DTP_FILTERSUXX.        &quot; Function Modules
+
+*******************************************************************
+*   User-defined Include-files (if necessary).                    *
+*******************************************************************
+* INCLUDE LZBW_CHANGE_DTP_FILTERSF...        &quot; Subroutines
+* INCLUDE LZBW_CHANGE_DTP_FILTERSO...        &quot; PBO-Modules
+* INCLUDE LZBW_CHANGE_DTP_FILTERSI...        &quot; PAI-Modules
+* INCLUDE LZBW_CHANGE_DTP_FILTERSE...        &quot; Events
+* INCLUDE LZBW_CHANGE_DTP_FILTERSP...        &quot; Local class implement.</source>
+ </mainprogram>
+ <includeprograms>
+  <include NAME="LZBW_CHANGE_DTP_FILTERSTOP" DBAPL="S" DBNA="D$" SUBC="I" APPL="S" CNAM="EXC060" CDAT="20131104" UNAM="EXC060" UDAT="20131104" VERN="000002" RMAND="001" FIXPT="X" SDATE="20131104" STIME="110031" IDATE="20131104" ITIME="110031" LDBNAME="D$S" UCCHECK="X">
+   <include_source>FUNCTION-POOL ZBW_CHANGE_DTP_FILTERS.       &quot;MESSAGE-ID ..
+
+* INCLUDE LZBW_CHANGE_DTP_FILTERSD...        &quot; Local class definition</include_source>
+  </include>
+ </includeprograms>
+ <functionmodules>
+  <functionmodule NAME="ZBW_CHANGE_DTP_FILTERS" STEXT="ZBW_CHANGE_DTP_FILTERS">
+   <importing PARAMETER="P_DTP" REFERENCE="X" TYP="RSBKDTP-DTP"/>
+   <importing PARAMETER="P_FLOB1" REFERENCE="X" TYP="STRING"/>
+   <importing PARAMETER="P_FLVL1" REFERENCE="X" TYP="STRING"/>
+   <importing PARAMETER="P_FLOB2" OPTIONAL="X" REFERENCE="X" TYP="STRING"/>
+   <importing PARAMETER="P_FLVL2" OPTIONAL="X" REFERENCE="X" TYP="STRING"/>
+   <importing PARAMETER="P_FLOB3" OPTIONAL="X" REFERENCE="X" TYP="STRING"/>
+   <importing PARAMETER="P_FLVL3" OPTIONAL="X" REFERENCE="X" TYP="STRING"/>
+   <importing PARAMETER="P_FLOB4" OPTIONAL="X" REFERENCE="X" TYP="STRING"/>
+   <importing PARAMETER="P_FLVL4" OPTIONAL="X" REFERENCE="X" TYP="STRING"/>
+   <importing PARAMETER="P_FLOB5" OPTIONAL="X" REFERENCE="X" TYP="STRING"/>
+   <importing PARAMETER="P_FLVL5" OPTIONAL="X" REFERENCE="X" TYP="STRING"/>
+   <importing PARAMETER="P_OPTION1" DEFAULT="&apos;EQ&apos;" OPTIONAL="X" REFERENCE="X" TYP="RSOPTION"/>
+   <importing PARAMETER="P_OPTION2" DEFAULT="&apos;EQ&apos;" OPTIONAL="X" REFERENCE="X" TYP="RSOPTION"/>
+   <importing PARAMETER="P_OPTION3" DEFAULT="&apos;EQ&apos;" OPTIONAL="X" REFERENCE="X" TYP="RSOPTION"/>
+   <importing PARAMETER="P_OPTION4" DEFAULT="&apos;EQ&apos;" OPTIONAL="X" REFERENCE="X" TYP="RSOPTION"/>
+   <importing PARAMETER="P_OPTION5" DEFAULT="&apos;EQ&apos;" OPTIONAL="X" REFERENCE="X" TYP="RSOPTION"/>
+   <importing PARAMETER="P_FLVL1_TO" OPTIONAL="X" REFERENCE="X" TYP="STRING"/>
+   <importing PARAMETER="P_FLVL2_TO" OPTIONAL="X" REFERENCE="X" TYP="STRING"/>
+   <importing PARAMETER="P_FLVL3_TO" OPTIONAL="X" REFERENCE="X" TYP="STRING"/>
+   <importing PARAMETER="P_FLVL4_TO" OPTIONAL="X" REFERENCE="X" TYP="STRING"/>
+   <importing PARAMETER="P_FLVL5_TO" OPTIONAL="X" REFERENCE="X" TYP="STRING"/>
+   <documentation PARAMETER="P_DTP" KIND="P" STEXT="Data Transfer Process ID" INDEX=" 001"/>
+   <documentation PARAMETER="P_FLOB1" KIND="P" INDEX=" 002"/>
+   <documentation PARAMETER="P_FLVL1" KIND="P" INDEX=" 003"/>
+   <documentation PARAMETER="P_FLOB2" KIND="P" INDEX=" 004"/>
+   <documentation PARAMETER="P_FLVL2" KIND="P" INDEX=" 005"/>
+   <documentation PARAMETER="P_FLOB3" KIND="P" INDEX=" 006"/>
+   <documentation PARAMETER="P_FLVL3" KIND="P" INDEX=" 007"/>
+   <documentation PARAMETER="P_FLOB4" KIND="P" INDEX=" 008"/>
+   <documentation PARAMETER="P_FLVL4" KIND="P" INDEX=" 009"/>
+   <documentation PARAMETER="P_FLOB5" KIND="P" INDEX=" 010"/>
+   <documentation PARAMETER="P_FLVL5" KIND="P" INDEX=" 011"/>
+   <documentation PARAMETER="P_OPTION1" KIND="P" STEXT="Selection criteria: OPTION" INDEX=" 012"/>
+   <documentation PARAMETER="P_OPTION2" KIND="P" STEXT="Selection criteria: OPTION" INDEX=" 013"/>
+   <documentation PARAMETER="P_OPTION3" KIND="P" STEXT="Selection criteria: OPTION" INDEX=" 014"/>
+   <documentation PARAMETER="P_OPTION4" KIND="P" STEXT="Selection criteria: OPTION" INDEX=" 015"/>
+   <documentation PARAMETER="P_OPTION5" KIND="P" STEXT="Selection criteria: OPTION" INDEX=" 016"/>
+   <documentation PARAMETER="P_FLVL1_TO" KIND="P" INDEX=" 017"/>
+   <documentation PARAMETER="P_FLVL2_TO" KIND="P" INDEX=" 018"/>
+   <documentation PARAMETER="P_FLVL3_TO" KIND="P" INDEX=" 019"/>
+   <documentation PARAMETER="P_FLVL4_TO" KIND="P" INDEX=" 020"/>
+   <documentation PARAMETER="P_FLVL5_TO" KIND="P" INDEX=" 021"/>
+   <fm_source_new>*&amp; Author: Vasu Sattenapalli
+*&amp; Functionality: This is a generic function module that accepts DTP
+*&amp; name, DTP filter fields and filter values as input and updates the
+*&amp; corresponding DTP with information provided as INPUT.
+*&amp;---------------------------------------------------------------------*
+*&amp;----------------------------------------------------------------------
+*&amp; Highlevel steps in program logic
+*&amp; Step 1: get existing filter values (selection table values)
+*&amp; Step 2: Change the status of DTP to INACTIVE, This will create M version of DTP
+*&amp; Step 3: Update selection table of DTP with internal table from step 2
+*&amp; Step 4: Save and Activate the DTP, this will save the changes to M version and Activates.
+*&amp;----------------------------------------------------------------------
+
+DATA: lcl_dtp TYPE REF TO cl_rsbk_dtp,
+lcl_request TYPE REF TO cl_rsbk_request,
+lcl_filter TYPE REF TO cl_rsbc_filter,
+w_loc_dtp TYPE rsbkdtpnm.
+DATA:
+s_sign TYPE rssign VALUE &apos;I&apos;,
+s_option TYPE rsoption VALUE &apos;EQ&apos;.
+
+w_loc_dtp = p_dtp.
+lcl_dtp = cl_rsbk_dtp=&gt;factory( w_loc_dtp ).
+DATA:
+g_t_dtprule TYPE mch_t_sourcecode,
+g_s_varseltab TYPE mch_var_select,
+g_t_varseltab TYPE mch_t_var_select,
+g_s_seltab TYPE rsbk_s_select,
+g_t_seltab TYPE TABLE OF rsbk_s_select,
+g_s_selfields TYPE mch_s_field,
+g_t_selfields TYPE mch_t_field,
+g_r_filter TYPE REF TO cl_rsbc_filter.
+lcl_filter = lcl_dtp-&gt;get_obj_ref_filter( ).
+*Step 1: get existing filter values (selection table values)
+CALL METHOD lcl_filter-&gt;get_all
+IMPORTING
+e_t_varseltab = g_t_varseltab
+e_t_seltab = g_t_seltab
+e_t_dtprule = g_t_dtprule
+e_t_selfields = g_t_selfields.
+*Collect the filter value changes into internal table
+CLEAR:
+g_t_seltab, g_s_seltab.
+IF p_flob1 IS NOT INITIAL AND p_flvl1 IS NOT INITIAL.
+g_s_seltab-field = p_flob1. &quot;&apos;PLANT&apos;.
+g_s_seltab-sign = s_sign.
+g_s_seltab-option = P_OPTION1.
+g_s_seltab-low = p_flvl1.
+g_s_seltab-HIGH = p_flvl1_to.
+APPEND g_s_seltab TO g_t_seltab.
+CLEAR g_s_seltab.
+ENDIF.
+IF p_flob2 IS NOT INITIAL AND p_flvl2 IS NOT INITIAL.
+g_s_seltab-field = p_flob2. &quot;&apos;PLANT&apos;.
+g_s_seltab-sign = s_sign.
+g_s_seltab-option = P_OPTION2.
+g_s_seltab-low = p_flvl2.
+g_s_seltab-HIGH = p_flvl2_to.
+APPEND g_s_seltab TO g_t_seltab.
+CLEAR g_s_seltab.
+ENDIF.
+IF p_flob3 IS NOT INITIAL AND p_flvl3 IS NOT INITIAL.
+g_s_seltab-field = p_flob3. &quot;&apos;PLANT&apos;.
+g_s_seltab-sign = s_sign.
+g_s_seltab-option = P_OPTION3.
+g_s_seltab-low = p_flvl3.
+g_s_seltab-HIGH = p_flvl3_to.
+APPEND g_s_seltab TO g_t_seltab.
+CLEAR g_s_seltab.
+ENDIF.
+IF p_flob4 IS NOT INITIAL AND p_flvl4 IS NOT INITIAL.
+g_s_seltab-field = p_flob4. &quot;&apos;PLANT&apos;.
+g_s_seltab-sign = s_sign.
+g_s_seltab-option = P_OPTION4.
+g_s_seltab-low = p_flvl4.
+g_s_seltab-HIGH = p_flvl4_to.
+APPEND g_s_seltab TO g_t_seltab.
+CLEAR g_s_seltab.
+ENDIF.
+IF p_flob5 IS NOT INITIAL AND p_flvl5 IS NOT INITIAL.
+g_s_seltab-field = p_flob5. &quot;&apos;PLANT&apos;.
+g_s_seltab-sign = s_sign.
+g_s_seltab-option = P_OPTION5.
+g_s_seltab-low = p_flvl5.
+g_s_seltab-HIGH = p_flvl5_to.
+APPEND g_s_seltab TO g_t_seltab.
+CLEAR g_s_seltab.
+ENDIF.
+
+*Step 2: Change the status of DTP to INACTIVE, This will create M version of DTP
+TYPES: rs_objstat TYPE rs_char3.
+CONSTANTS: BEGIN OF rs_c_objstat,
+active TYPE rs_objstat VALUE &apos;ACT&apos;,
+inactive TYPE rs_objstat VALUE &apos;INA&apos;,
+off TYPE rs_objstat VALUE &apos;OFF&apos;,
+productive TYPE rs_objstat VALUE &apos;PRO&apos;,
+all TYPE rs_objstat VALUE &apos;%&apos;,
+END OF rs_c_objstat.
+TRY.
+CALL METHOD lcl_dtp-&gt;if_rsbk_dtp_maintain~set_objstat
+EXPORTING
+i_objstat = rs_c_objstat-inactive.
+CATCH cx_rs_failed .
+ENDTRY.
+*Step 3: Update selection table of DTP with internal table from step 2
+CALL METHOD lcl_filter-&gt;set_all
+EXPORTING
+i_t_seltab = g_t_seltab
+i_t_selfields = g_t_selfields
+i_t_dtprule = g_t_dtprule
+i_t_varseltab = g_t_varseltab.
+
+* Step 4: Save and Activate the DTP, this will save the changes to M version and Activates.
+lcl_dtp-&gt;save( ).
+lcl_dtp-&gt;activate( ).
+
+COMMIT WORK.
+DATA: output TYPE string.
+LOOP AT g_t_seltab INTO g_s_seltab.
+CONCATENATE &apos;DTP &quot;&apos; p_dtp &apos;&quot;&apos; INTO output SEPARATED BY space.
+CONCATENATE output &apos;Filter Value for the field&apos; g_s_seltab-field INTO output SEPARATED BY space.
+CONCATENATE output &apos;is updated to&apos; g_s_seltab-low INTO output SEPARATED BY space.
+WRITE output.
+ENDLOOP.</fm_source_new>
+   <functionModuleDocumentation/>
+  </functionmodule>
+ </functionmodules>
+</FUGR>
