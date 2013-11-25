@@ -1,0 +1,812 @@
+<?xml version="1.0" encoding="utf-16"?>
+<nugget name="ZBI_INACTIVE_OBJECTS">
+ <FUGR AREA="ZBI_INACTIVE_OBJECTS" SPRAS="E" AREAT="ZBI_INACTIVE_OBJECTS">
+  <functionGroupDocumentation/>
+  <mainprogram NAME="SAPLZBI_INACTIVE_OBJECTS" VARCL="X" DBAPL="S" DBNA="D$" SUBC="F" APPL="S" CNAM="EXC060" CDAT="20131114" UNAM="EXC060" UDAT="20131114" VERN="000002" RMAND="001" RLOAD="E" FIXPT="X" SDATE="20131125" STIME="104036" IDATE="20131114" ITIME="105611" LDBNAME="D$S" UCCHECK="X">
+   <textPool/>
+   <source>*******************************************************************
+*   System-defined Include-files.                                 *
+*******************************************************************
+  INCLUDE LZBI_INACTIVE_OBJECTSTOP.          &quot; Global Data
+  INCLUDE LZBI_INACTIVE_OBJECTSUXX.          &quot; Function Modules
+
+*******************************************************************
+*   User-defined Include-files (if necessary).                    *
+*******************************************************************
+* INCLUDE LZBI_INACTIVE_OBJECTSF...          &quot; Subroutines
+* INCLUDE LZBI_INACTIVE_OBJECTSO...          &quot; PBO-Modules
+* INCLUDE LZBI_INACTIVE_OBJECTSI...          &quot; PAI-Modules
+* INCLUDE LZBI_INACTIVE_OBJECTSE...          &quot; Events
+* INCLUDE LZBI_INACTIVE_OBJECTSP...          &quot; Local class implement.</source>
+  </mainprogram>
+  <includeprograms>
+   <include NAME="LZBI_INACTIVE_OBJECTSTOP" DBAPL="S" DBNA="D$" SUBC="I" APPL="S" CNAM="EXC060" CDAT="20131114" UNAM="EXC060" UDAT="20131114" VERN="000002" RMAND="001" FIXPT="X" SDATE="20131114" STIME="105611" IDATE="20131114" ITIME="105611" LDBNAME="D$S" UCCHECK="X">
+    <include_source>FUNCTION-POOL ZBI_INACTIVE_OBJECTS.         &quot;MESSAGE-ID ..
+
+* INCLUDE LZBI_INACTIVE_OBJECTSD...          &quot; Local class definition</include_source>
+   </include>
+  </includeprograms>
+  <functionmodules>
+   <functionmodule NAME="ZBI_INACT_OBJ_SNAPSHOT_CREATE" STEXT="ZBI_INACT_OBJ_SNAPSHOT_CREATE">
+    <importing PARAMETER="I_DATE" OPTIONAL="X" REFERENCE="X" TYP="DATS"/>
+    <importing PARAMETER="I_TIME" OPTIONAL="X" REFERENCE="X" TYP="TIMS"/>
+    <importing PARAMETER="I_SAVE" DEFAULT="&apos;&apos;" OPTIONAL="X" REFERENCE="X" TYP="FLAG"/>
+    <changing PARAMETER="CT_DATA" REFERENCE="X" TYP="ZBI_INACTIVE_OBJ_T"/>
+    <documentation PARAMETER="I_DATE" KIND="P" STEXT="Field of type DATS" INDEX=" 001"/>
+    <documentation PARAMETER="I_TIME" KIND="P" STEXT="Field of type TIMS" INDEX=" 002"/>
+    <documentation PARAMETER="I_SAVE" KIND="P" STEXT="General Flag" INDEX=" 003"/>
+    <documentation PARAMETER="CT_DATA" KIND="P" STEXT="ZBI_INACTIVE_OBJ_T" INDEX=" 004"/>
+    <fm_source>FIELD-SYMBOLS: &lt;s_data&gt; TYPE zbi_inactive_obj.
+
+  DATA:
+        l_date TYPE dats,
+        l_time TYPE tims.
+
+  REFRESH ct_data.
+
+  IF i_date IS SUPPLIED.
+    l_date = i_date.
+  ELSE.
+    l_date = sy-datum.
+  ENDIF.
+
+  IF i_time IS SUPPLIED.
+    l_time = i_time.
+  ELSE.
+    l_time = sy-uzeit.
+  ENDIF.
+
+  CALL FUNCTION &apos;ZBI_INACT_OBJ_CUBE_GET&apos;
+    CHANGING
+      ct_data = ct_data.
+
+  CALL FUNCTION &apos;ZBI_INACT_OBJ_MPRO_GET&apos;
+    CHANGING
+      ct_data = ct_data.
+
+  CALL FUNCTION &apos;ZBI_INACT_OBJ_ALVL_GET&apos;
+    CHANGING
+      ct_data = ct_data.
+
+  CALL FUNCTION &apos;ZBI_INACT_OBJ_ODSO_GET&apos;
+    CHANGING
+      ct_data = ct_data.
+
+  CALL FUNCTION &apos;ZBI_INACT_OBJ_DTP_GET&apos;
+    CHANGING
+      ct_data = ct_data.
+
+  CALL FUNCTION &apos;ZBI_INACT_OBJ_IOBJ_GET&apos;
+    CHANGING
+      ct_data = ct_data.
+
+  CALL FUNCTION &apos;ZBI_INACT_OBJ_PC_GET&apos;
+    CHANGING
+      ct_data = ct_data.
+
+  CALL FUNCTION &apos;ZBI_INACT_OBJ_PC_MODIF_GET&apos;
+    CHANGING
+      ct_data = ct_data.
+
+  CALL FUNCTION &apos;ZBI_INACT_OBJ_RSDS_GET&apos;
+    CHANGING
+      ct_data = ct_data.
+
+  CALL FUNCTION &apos;ZBI_INACT_OBJ_RSTS_GET&apos;
+    CHANGING
+      ct_data = ct_data.
+
+  CALL FUNCTION &apos;ZBI_INACT_OBJ_TRFN_GET&apos;
+    CHANGING
+      ct_data = ct_data.
+
+  CALL FUNCTION &apos;ZBI_INACT_OBJ_UPDR_GET&apos;
+    CHANGING
+      ct_data = ct_data.
+
+  LOOP AT ct_data ASSIGNING &lt;s_data&gt;.
+    &lt;s_data&gt;-date_exec = l_date.
+    &lt;s_data&gt;-time_exec = l_time.
+  ENDLOOP.
+
+  IF i_save = &apos;X&apos;.
+    INSERT zbi_inactive_obj FROM TABLE ct_data.
+    commit work.
+  ENDIF.</fm_source>
+    <functionModuleDocumentation/>
+   </functionmodule>
+   <functionmodule NAME="ZBI_INACT_OBJ_CUBE_GET" STEXT="ZBI_INACT_OBJ_SNAPSHOT_CREATE">
+    <importing PARAMETER="I_ACTIVE_ONLY" DEFAULT="&apos;X&apos;" OPTIONAL="X" REFERENCE="X" TYP="FLAG"/>
+    <changing PARAMETER="CT_DATA" REFERENCE="X" TYP="ZBI_INACTIVE_OBJ_T"/>
+    <documentation PARAMETER="I_ACTIVE_ONLY" KIND="P" STEXT="General Flag" INDEX=" 001"/>
+    <documentation PARAMETER="CT_DATA" KIND="P" STEXT="ZBI_INACTIVE_OBJ_T" INDEX=" 002"/>
+    <fm_source_new>* Only objects wiht an A version ara checked. =&gt; If an object has never been activated it is not
+* included in the list. This concerns only objects &apos;in development&apos;
+data:
+      l_objvers TYPE RSOBJVERS VALUE &apos;A&apos;,
+      ls_inact_obj type zbi_INACTIVE_OBJ,
+      ls_rsdcube type rsdcube.
+
+  ls_inact_obj-type = &apos;CUBE&apos;.
+
+  IF i_active_only NE &apos;X&apos;.
+    l_objvers = &apos;M&apos;.
+  ENDIF.
+
+  SELECT * FROM rsdcube
+    INTO ls_rsdcube
+    WHERE objvers = l_objvers
+      AND objstat = &apos;INA&apos;
+      AND cubetype NE &apos;M&apos;.
+
+  ls_inact_obj-id = ls_rsdcube-infocube.
+  append ls_inact_obj to ct_data.
+ENDSELECT.</fm_source_new>
+    <functionModuleDocumentation/>
+   </functionmodule>
+   <functionmodule NAME="ZBI_INACT_OBJ_MPRO_GET" STEXT="ZBI_INACT_OBJ_SNAPSHOT_CREATE">
+    <importing PARAMETER="I_ACTIVE_ONLY" DEFAULT="&apos;X&apos;" OPTIONAL="X" REFERENCE="X" TYP="FLAG"/>
+    <changing PARAMETER="CT_DATA" REFERENCE="X" TYP="ZBI_INACTIVE_OBJ_T"/>
+    <documentation PARAMETER="I_ACTIVE_ONLY" KIND="P" STEXT="General Flag" INDEX=" 001"/>
+    <documentation PARAMETER="CT_DATA" KIND="P" STEXT="ZBI_INACTIVE_OBJ_T" INDEX=" 002"/>
+    <fm_source_new>* Only objects wiht an A version ara checked. =&gt; If an object has never been activated it is not
+* included in the list. This concerns only objects &apos;in development&apos;
+data:
+      l_objvers TYPE RSOBJVERS VALUE &apos;A&apos;,
+      ls_inact_obj type zbi_INACTIVE_OBJ,
+      ls_rsdcube type rsdcube.
+
+  ls_inact_obj-type = &apos;MPRO&apos;.
+
+  IF i_active_only NE &apos;X&apos;.
+    l_objvers = &apos;M&apos;.
+  ENDIF.
+
+  SELECT * FROM rsdcube
+    INTO ls_rsdcube
+    WHERE objvers = l_objvers
+      AND objstat = &apos;INA&apos;
+      AND cubetype EQ &apos;M&apos;.
+
+  ls_inact_obj-id = ls_rsdcube-infocube.
+  append ls_inact_obj to ct_data.
+ENDSELECT.</fm_source_new>
+    <functionModuleDocumentation/>
+   </functionmodule>
+   <functionmodule NAME="ZBI_INACT_OBJ_ODSO_GET" STEXT="ZBI_INACT_OBJ_SNAPSHOT_CREATE">
+    <importing PARAMETER="I_ACTIVE_ONLY" DEFAULT="&apos;X&apos;" OPTIONAL="X" REFERENCE="X" TYP="FLAG"/>
+    <changing PARAMETER="CT_DATA" REFERENCE="X" TYP="ZBI_INACTIVE_OBJ_T"/>
+    <documentation PARAMETER="I_ACTIVE_ONLY" KIND="P" STEXT="General Flag" INDEX=" 001"/>
+    <documentation PARAMETER="CT_DATA" KIND="P" STEXT="ZBI_INACTIVE_OBJ_T" INDEX=" 002"/>
+    <fm_source_new>* Only objects wiht an A version ara checked. =&gt; If an object has never been activated it is not
+* included in the list. This concerns only objects &apos;in development&apos;
+
+
+  DATA:
+        l_objvers TYPE RSOBJVERS VALUE &apos;A&apos;,
+        ls_inact_obj TYPE zbi_inactive_obj,
+        ls_rsdodsoloc TYPE rsdodsoloc,
+        ls_rsdodso TYPE rsdodso.
+
+  ls_inact_obj-type = &apos;ODSO&apos;.
+
+  IF i_active_only NE &apos;X&apos;.
+    l_objvers = &apos;M&apos;.
+  ENDIF.
+
+  SELECT * FROM rsdodso
+  INTO ls_rsdodso
+    WHERE objvers = l_objvers.
+
+    SELECT SINGLE * FROM rsdodsoloc
+      INTO ls_rsdodsoloc
+      WHERE odsobject = ls_rsdodso-odsobject
+        AND  objstat = &apos;INA&apos;.
+    IF sy-subrc = 0.
+      ls_inact_obj-id = ls_rsdodso-odsobject.
+      APPEND ls_inact_obj TO ct_data.
+    ENDIF.
+  ENDSELECT.</fm_source_new>
+    <functionModuleDocumentation/>
+   </functionmodule>
+   <functionmodule NAME="ZBI_INACT_OBJ_IOBJ_GET" STEXT="ZBI_INACT_OBJ_SNAPSHOT_CREATE">
+    <importing PARAMETER="I_ACTIVE_ONLY" DEFAULT="&apos;X&apos;" OPTIONAL="X" REFERENCE="X" TYP="FLAG"/>
+    <changing PARAMETER="CT_DATA" REFERENCE="X" TYP="ZBI_INACTIVE_OBJ_T"/>
+    <documentation PARAMETER="I_ACTIVE_ONLY" KIND="P" STEXT="General Flag" INDEX=" 001"/>
+    <documentation PARAMETER="CT_DATA" KIND="P" STEXT="ZBI_INACTIVE_OBJ_T" INDEX=" 002"/>
+    <fm_source_new>* Only objects wiht an A version ara checked. =&gt; If an object has never been activated it is not
+* included in the list. This concerns only objects &apos;in development&apos;
+
+
+  DATA:
+        l_objvers TYPE RSOBJVERS VALUE &apos;A&apos;,
+        ls_inact_obj TYPE zbi_inactive_obj,
+        ls_rsdiobj TYPE rsdiobj.
+
+  ls_inact_obj-type = &apos;IOBJ&apos;.
+
+  IF i_active_only NE &apos;X&apos;.
+    l_objvers = &apos;M&apos;.
+  ENDIF.
+
+  SELECT * FROM rsdiobj
+    INTO ls_rsdiobj
+    WHERE objvers = l_objvers
+      AND objstat = &apos;INA&apos;.
+    ls_inact_obj-id = ls_rsdiobj-iobjnm.
+    APPEND ls_inact_obj TO ct_data.
+  ENDSELECT.</fm_source_new>
+    <functionModuleDocumentation/>
+   </functionmodule>
+   <functionmodule NAME="ZBI_INACT_OBJ_RSTS_GET" STEXT="ZBI_INACT_OBJ_SNAPSHOT_CREATE">
+    <importing PARAMETER="I_ACTIVE_ONLY" DEFAULT="&apos;X&apos;" OPTIONAL="X" REFERENCE="X" TYP="FLAG"/>
+    <changing PARAMETER="CT_DATA" REFERENCE="X" TYP="ZBI_INACTIVE_OBJ_T"/>
+    <documentation PARAMETER="I_ACTIVE_ONLY" KIND="P" STEXT="General Flag" INDEX=" 001"/>
+    <documentation PARAMETER="CT_DATA" KIND="P" STEXT="ZBI_INACTIVE_OBJ_T" INDEX=" 002"/>
+    <fm_source_new>* Only objects wiht an A version ara checked. =&gt; If an object has never been activated it is not
+* included in the list. This concerns only objects &apos;in development&apos;
+  DATA:
+        l_objvers TYPE rsobjvers VALUE &apos;A&apos;,
+        ls_inact_obj TYPE zbi_inactive_obj,
+        ls_rsts TYPE rsts.
+
+
+  ls_inact_obj-type = &apos;RSTS&apos;.
+
+  IF i_active_only NE &apos;X&apos;.
+    l_objvers = &apos;M&apos;.
+  ENDIF.
+
+  SELECT * FROM rsts
+  INTO ls_rsts
+  WHERE objvers = l_objvers
+  AND objstat = &apos;INA&apos;.
+
+    ls_inact_obj-id = ls_rsts-transtru.
+    APPEND ls_inact_obj TO ct_data.
+  ENDSELECT.</fm_source_new>
+    <functionModuleDocumentation/>
+   </functionmodule>
+   <functionmodule NAME="ZBI_INACT_OBJ_UPDR_GET" STEXT="ZBI_INACT_OBJ_SNAPSHOT_CREATE">
+    <importing PARAMETER="I_ACTIVE_ONLY" DEFAULT="&apos;X&apos;" OPTIONAL="X" REFERENCE="X" TYP="FLAG"/>
+    <changing PARAMETER="CT_DATA" REFERENCE="X" TYP="ZBI_INACTIVE_OBJ_T"/>
+    <documentation PARAMETER="I_ACTIVE_ONLY" KIND="P" STEXT="General Flag" INDEX=" 001"/>
+    <documentation PARAMETER="CT_DATA" KIND="P" STEXT="ZBI_INACTIVE_OBJ_T" INDEX=" 002"/>
+    <fm_source_new>* Only objects wiht an A version ara checked. =&gt; If an object has never been activated it is not
+* included in the list. This concerns only objects &apos;in development&apos;
+DATA:
+      l_objvers TYPE rsobjvers VALUE &apos;A&apos;,
+      ls_inact_obj TYPE zbi_inactive_obj,
+      ls_rsupdinfo TYPE rsupdinfo.
+
+  ls_inact_obj-type = &apos;UPDR&apos;.
+
+  IF i_active_only NE &apos;X&apos;.
+    l_objvers = &apos;M&apos;.
+  ENDIF.
+
+  SELECT * FROM rsupdinfo
+  INTO ls_rsupdinfo
+  WHERE objvers = l_objvers
+    AND objstat = &apos;INA&apos;.
+
+    ls_inact_obj-id = ls_rsupdinfo-updid.
+    CONCATENATE ls_rsupdinfo-isource &apos;=&gt;&apos; ls_rsupdinfo-infocube into ls_inact_obj-description.
+    APPEND ls_inact_obj TO ct_data.
+  ENDSELECT.</fm_source_new>
+    <functionModuleDocumentation/>
+   </functionmodule>
+   <functionmodule NAME="ZBI_INACT_OBJ_TRFN_GET" STEXT="ZBI_INACT_OBJ_SNAPSHOT_CREATE">
+    <importing PARAMETER="I_ACTIVE_ONLY" DEFAULT="&apos;X&apos;" OPTIONAL="X" REFERENCE="X" TYP="FLAG"/>
+    <changing PARAMETER="CT_DATA" REFERENCE="X" TYP="ZBI_INACTIVE_OBJ_T"/>
+    <documentation PARAMETER="I_ACTIVE_ONLY" KIND="P" STEXT="General Flag" INDEX=" 001"/>
+    <documentation PARAMETER="CT_DATA" KIND="P" STEXT="ZBI_INACTIVE_OBJ_T" INDEX=" 002"/>
+    <fm_source_new>* Only objects wiht an A version ara checked. =&gt; If an object has never been activated it is not
+* included in the list. This concerns only objects &apos;in development&apos;
+  DATA:
+        l_objvers TYPE rsobjvers VALUE &apos;A&apos;,
+        ls_inact_obj TYPE zbi_inactive_obj,
+        ls_rstran TYPE rstran.
+
+  ls_inact_obj-type = &apos;TRFN&apos;.
+
+  IF i_active_only NE &apos;X&apos;.
+    l_objvers = &apos;M&apos;.
+  ENDIF.
+
+  SELECT *  FROM rstran
+  INTO ls_rstran
+  WHERE objvers = l_objvers
+  AND objstat = &apos;INA&apos;.
+
+    ls_inact_obj-id = ls_rstran-tranid.
+    CONCATENATE ls_rstran-sourcename &apos;=&gt;&apos; ls_rstran-targetname INTO ls_inact_obj-description.
+    APPEND ls_inact_obj TO ct_data.
+  ENDSELECT.</fm_source_new>
+    <functionModuleDocumentation/>
+   </functionmodule>
+   <functionmodule NAME="ZBI_INACT_OBJ_DTP_GET" STEXT="ZBI_INACT_OBJ_SNAPSHOT_CREATE">
+    <importing PARAMETER="I_ACTIVE_ONLY" DEFAULT="&apos;X&apos;" OPTIONAL="X" REFERENCE="X" TYP="FLAG"/>
+    <changing PARAMETER="CT_DATA" REFERENCE="X" TYP="ZBI_INACTIVE_OBJ_T"/>
+    <documentation PARAMETER="I_ACTIVE_ONLY" KIND="P" STEXT="General Flag" INDEX=" 001"/>
+    <documentation PARAMETER="CT_DATA" KIND="P" STEXT="ZBI_INACTIVE_OBJ_T" INDEX=" 002"/>
+    <fm_source_new>* Only objects wiht an A version ara checked. =&gt; If an object has never been activated it is not
+* included in the list. This concerns only objects &apos;in development&apos;
+  DATA:
+        lr_dtp TYPE REF TO cl_rsbk_dtp,
+        l_text TYPE symsgv,
+        lv_active TYPE c,
+        l_objvers TYPE rsobjvers VALUE &apos;A&apos;,
+        ls_inact_obj TYPE zbi_inactive_obj,
+        ls_rsbkdtp TYPE rsbkdtp.
+
+  ls_inact_obj-type = &apos;DTP&apos;.
+
+  IF i_active_only NE &apos;X&apos;.
+    l_objvers = &apos;M&apos;.
+  ENDIF.
+
+  SELECT * FROM rsbkdtp
+  INTO ls_rsbkdtp
+  WHERE objvers = l_objvers.
+
+    CALL METHOD cl_rsbk_dtp=&gt;factory
+      EXPORTING
+        i_dtp   = ls_rsbkdtp-dtp
+      RECEIVING
+        r_r_dtp = lr_dtp.
+
+    CALL METHOD lr_dtp-&gt;if_rso_tlogo_maintain~is_active
+      RECEIVING
+        r_is_active = lv_active.
+
+    IF lv_active IS INITIAL.
+      TRY.
+          CALL METHOD lr_dtp-&gt;get_text
+            EXPORTING
+              i_langu   = sy-langu
+            RECEIVING
+              r_dtptext = l_text.
+        CATCH cx_rs_access_error .
+      ENDTRY.
+
+      ls_inact_obj-id = ls_rsbkdtp-dtp.
+      ls_inact_obj-description = l_text.
+      APPEND ls_inact_obj TO ct_data.
+
+    ENDIF.
+
+  ENDSELECT.</fm_source_new>
+    <functionModuleDocumentation/>
+   </functionmodule>
+   <functionmodule NAME="ZBI_INACT_OBJ_PC_GET" STEXT="ZBI_INACT_OBJ_SNAPSHOT_CREATE">
+    <changing PARAMETER="CT_DATA" REFERENCE="X" TYP="ZBI_INACTIVE_OBJ_T"/>
+    <documentation PARAMETER="CT_DATA" KIND="P" STEXT="ZBI_INACTIVE_OBJ_T" INDEX=" 001"/>
+    <fm_source_new>* Only objects wiht an A version ara checked. =&gt; If an object has never been activated it is not
+* included in the list. This concerns only objects &apos;in development&apos;
+  DATA:
+        ls_chain TYPE rspcchain,
+        lt_chain TYPE TABLE OF rspcchain,
+        lt_chain_active TYPE TABLE OF rspcchain,
+        ls_inact_obj TYPE zbi_inactive_obj.
+
+  ls_inact_obj-type = &apos;PC&apos;.
+
+
+  SELECT * FROM rspcchain
+  INTO TABLE lt_chain
+  WHERE objvers IN (&apos;M&apos;, &apos;A&apos;)
+    AND type = &apos;TRIGGER&apos;.
+
+  SORT lt_chain BY chain_id.
+  lt_chain_active = lt_chain.
+  DELETE ADJACENT DUPLICATES FROM lt_chain COMPARING chain_id.
+  DELETE lt_chain_active WHERE objvers = &apos;M&apos;.
+
+  LOOP AT lt_chain INTO ls_chain.
+    READ TABLE lt_chain_active TRANSPORTING NO FIELDS
+      WITH KEY chain_id = ls_chain-chain_id.
+
+    IF sy-subrc &lt;&gt; 0. &quot; Only M version exists in table =&gt; Chain is inactive
+      ls_inact_obj-id = ls_chain-chain_id.
+      APPEND ls_inact_obj TO ct_data.
+    ENDIF.
+
+  ENDLOOP.</fm_source_new>
+    <functionModuleDocumentation/>
+   </functionmodule>
+   <functionmodule NAME="ZBI_INACT_OBJ_PC_MODIF_GET" STEXT="ZBI_INACT_OBJ_SNAPSHOT_CREATE">
+    <changing PARAMETER="CT_DATA" REFERENCE="X" TYP="ZBI_INACTIVE_OBJ_T"/>
+    <documentation PARAMETER="CT_DATA" KIND="P" STEXT="ZBI_INACTIVE_OBJ_T" INDEX=" 001"/>
+    <fm_source>* Only chains with a start process are considered.
+* Returns Active PCs that have a M version saved after last activation
+
+
+  DATA:
+        lt_chain TYPE TABLE OF rspcchain,
+        lt_rspcchainattr TYPE TABLE OF rspcchainattr,
+        ls_rspcchainattr TYPE rspcchainattr,
+        ls_inact_obj TYPE zbi_inactive_obj.
+
+  ls_inact_obj-type = &apos;PC2&apos;.
+
+
+  SELECT * FROM rspcchain
+  INTO TABLE lt_chain
+  WHERE objvers = &apos;A&apos;
+    AND type = &apos;TRIGGER&apos;.
+
+  SELECT * FROM rspcchainattr
+    INTO TABLE lt_rspcchainattr
+    FOR ALL ENTRIES IN lt_chain
+    WHERE chain_id = lt_chain-chain_id
+      AND objvers IN (&apos;M&apos;, &apos;A&apos;).
+
+  SORT lt_rspcchainattr BY chain_id timestmp DESCENDING.
+  DELETE ADJACENT DUPLICATES FROM lt_rspcchainattr COMPARING chain_id.
+  DELETE lt_rspcchainattr WHERE objvers = &apos;A&apos;.
+
+  LOOP AT lt_rspcchainattr INTO ls_rspcchainattr.
+    ls_inact_obj-id = ls_rspcchainattr-chain_id.
+    APPEND ls_inact_obj TO ct_data.
+  ENDLOOP.</fm_source>
+    <functionModuleDocumentation/>
+   </functionmodule>
+   <functionmodule NAME="ZBI_INACT_OBJ_ALVL_GET" STEXT="ZBI_INACT_OBJ_SNAPSHOT_CREATE">
+    <importing PARAMETER="I_ACTIVE_ONLY" DEFAULT="&apos;X&apos;" OPTIONAL="X" REFERENCE="X" TYP="FLAG"/>
+    <changing PARAMETER="CT_DATA" REFERENCE="X" TYP="ZBI_INACTIVE_OBJ_T"/>
+    <documentation PARAMETER="I_ACTIVE_ONLY" KIND="P" STEXT="General Flag" INDEX=" 001"/>
+    <documentation PARAMETER="CT_DATA" KIND="P" STEXT="ZBI_INACTIVE_OBJ_T" INDEX=" 002"/>
+    <fm_source_new>* Only objects wiht an A version ara checked. =&gt; If an object has never been activated it is not
+* included in the list. This concerns only objects &apos;in development&apos;
+data:
+      l_objvers TYPE RSOBJVERS VALUE &apos;A&apos;,
+      ls_inact_obj type zbi_INACTIVE_OBJ,
+      ls_rspls_alvl type rspls_alvl.
+
+  ls_inact_obj-type = &apos;ALVL&apos;.
+
+  IF i_active_only NE &apos;X&apos;.
+    l_objvers = &apos;M&apos;.
+  ENDIF.
+
+SELECT * FROM rspls_alvl
+  INTO ls_rspls_alvl
+  WHERE objvers = l_objvers
+    AND objstat = &apos;INA&apos;.
+  ls_inact_obj-id = ls_rspls_alvl-AGGRLEVEL.
+  append ls_inact_obj to ct_data.
+ENDSELECT.</fm_source_new>
+    <functionModuleDocumentation/>
+   </functionmodule>
+   <functionmodule NAME="ZBI_INACT_OBJ_RSDS_GET" STEXT="ZBI_INACT_OBJ_SNAPSHOT_CREATE">
+    <changing PARAMETER="CT_DATA" REFERENCE="X" TYP="ZBI_INACTIVE_OBJ_T"/>
+    <documentation PARAMETER="CT_DATA" KIND="P" STEXT="ZBI_INACTIVE_OBJ_T" INDEX=" 001"/>
+    <fm_source>DATA:
+        ls_inact_obj TYPE zbi_inactive_obj,
+        ls_rsds TYPE rsds.
+
+  ls_inact_obj-type = &apos;RSDS&apos;.
+  SELECT * FROM rsds
+  INTO ls_rsds
+  WHERE objvers = &apos;M&apos;
+  AND objstat = &apos;INA&apos;.
+    CONCATENATE  ls_rsds-logsys ls_rsds-datasource INTO ls_inact_obj-id.
+    APPEND ls_inact_obj TO ct_data.
+  ENDSELECT.</fm_source>
+    <functionModuleDocumentation/>
+   </functionmodule>
+   <functionmodule NAME="ZBI_INACT_OBJ_SNAPSHOT_RESET" STEXT="ZBI_INACT_OBJ_RESET">
+    <fm_source>DELETE FROM zbi_inactive_obj WHERE type &lt;&gt; &apos;&apos;.
+  COMMIT WORK.</fm_source>
+    <functionModuleDocumentation/>
+   </functionmodule>
+   <functionmodule NAME="ZBI_INACT_OBJ_SNAPSHOT_GET" STEXT="ZBI_INACT_OBJ_SNAPSHOT_CREATE">
+    <importing PARAMETER="I_DATE" OPTIONAL="X" REFERENCE="X" TYP="DATS"/>
+    <importing PARAMETER="I_TIME" OPTIONAL="X" REFERENCE="X" TYP="TIMS"/>
+    <importing PARAMETER="I_SKIP" DEFAULT="0" OPTIONAL="X" REFERENCE="X" TYP="I"/>
+    <exporting PARAMETER="E_DATE_SNAPSHOT" REFERENCE="X" TYP="DATS"/>
+    <exporting PARAMETER="E_TIME_SNAPSHOT" REFERENCE="X" TYP="TIMS"/>
+    <changing PARAMETER="CT_DATA" REFERENCE="X" TYP="ZBI_INACTIVE_OBJ_T"/>
+    <exceptions EXCEPTION="NO_DATA_FOUND"/>
+    <documentation PARAMETER="I_DATE" KIND="P" STEXT="Field of type DATS" INDEX=" 001"/>
+    <documentation PARAMETER="I_TIME" KIND="P" STEXT="Field of type TIMS" INDEX=" 002"/>
+    <documentation PARAMETER="I_SKIP" KIND="P" STEXT="Skip n snapshots" INDEX=" 003"/>
+    <documentation PARAMETER="E_DATE_SNAPSHOT" KIND="P" STEXT="Field of type DATS" INDEX=" 004"/>
+    <documentation PARAMETER="E_TIME_SNAPSHOT" KIND="P" STEXT="Field of type TIMS" INDEX=" 005"/>
+    <documentation PARAMETER="CT_DATA" KIND="P" STEXT="ZBI_INACTIVE_OBJ_T" INDEX=" 006"/>
+    <documentation PARAMETER="NO_DATA_FOUND" KIND="X" INDEX=" 007"/>
+    <fm_source>FIELD-SYMBOLS: &lt;s_data&gt; TYPE zbi_inactive_obj.
+
+  DATA:
+        l_index TYPE i,
+        l_lines TYPE i,
+        lt_snapshots TYPE zbi_inactive_obj_t,
+        ls_snapshot TYPE zbi_inactive_obj,
+        l_date TYPE dats,
+        l_time TYPE tims.
+
+
+  REFRESH ct_data.
+
+  l_index = i_skip + 1.
+
+  IF i_date IS SUPPLIED.
+    l_date = i_date.
+    IF i_time IS SUPPLIED.
+      l_time = i_time.
+    ENDIF.
+  ELSE.
+    l_date = sy-datum.
+    l_time = sy-uzeit.
+  ENDIF.
+
+
+
+*  LOOP AT ct_data ASSIGNING &lt;s_data&gt;.
+*    &lt;s_data&gt;-date_exec = l_date.
+*    &lt;s_data&gt;-time_exec = l_time.
+*  ENDLOOP.
+  SELECT DISTINCT date_exec time_exec FROM zbi_inactive_obj
+    INTO CORRESPONDING FIELDS OF TABLE lt_snapshots
+    WHERE ( date_exec LT i_date )
+       OR ( date_exec EQ i_date
+      AND   time_exec LE i_time )
+      ORDER BY date_exec DESCENDING
+             time_exec DESCENDING.
+
+  &quot; Check that there is a result set
+  DESCRIBE TABLE lt_snapshots LINES l_lines.
+  IF l_lines &lt; l_index.
+    RAISE no_data_found.
+  ENDIF.
+  READ TABLE lt_snapshots INTO ls_snapshot INDEX l_index.
+
+  SELECT * FROM zbi_inactive_obj
+    INTO TABLE ct_data
+    WHERE date_exec = ls_snapshot-date_exec
+      AND time_exec = ls_snapshot-time_exec.
+
+   e_date_snapshot = ls_snapshot-date_exec.
+   e_time_snapshot = ls_snapshot-time_exec.</fm_source>
+    <functionModuleDocumentation/>
+   </functionmodule>
+   <functionmodule NAME="ZBI_INACT_OBJ_SNAPSHOT_DIFF" STEXT="ZBI_INACT_OBJ_SNAPSHOT_CREATE">
+    <importing PARAMETER="I_DATE_AFTER" OPTIONAL="X" REFERENCE="X" TYP="DATS"/>
+    <importing PARAMETER="I_TIME_AFTER" OPTIONAL="X" REFERENCE="X" TYP="TIMS"/>
+    <importing PARAMETER="I_DATE_BEFORE" OPTIONAL="X" REFERENCE="X" TYP="DATS"/>
+    <importing PARAMETER="I_TIME_BEFORE" OPTIONAL="X" REFERENCE="X" TYP="TIMS"/>
+    <changing PARAMETER="CT_DATA_ACTIVATED" REFERENCE="X" TYP="ZBI_INACTIVE_OBJ_T"/>
+    <changing PARAMETER="CT_DATA_DEACTIVATED" REFERENCE="X" TYP="ZBI_INACTIVE_OBJ_T"/>
+    <documentation PARAMETER="I_DATE_AFTER" KIND="P" STEXT="Field of type DATS" INDEX=" 001"/>
+    <documentation PARAMETER="I_TIME_AFTER" KIND="P" STEXT="Field of type TIMS" INDEX=" 002"/>
+    <documentation PARAMETER="I_DATE_BEFORE" KIND="P" STEXT="Field of type DATS" INDEX=" 003"/>
+    <documentation PARAMETER="I_TIME_BEFORE" KIND="P" STEXT="Field of type TIMS" INDEX=" 004"/>
+    <documentation PARAMETER="CT_DATA_ACTIVATED" KIND="P" STEXT="ZBI_INACTIVE_OBJ_T" INDEX=" 005"/>
+    <documentation PARAMETER="CT_DATA_DEACTIVATED" KIND="P" STEXT="ZBI_INACTIVE_OBJ_T" INDEX=" 006"/>
+    <fm_source_new>FIELD-SYMBOLS: &lt;s_data&gt; TYPE zbi_inactive_obj.
+
+  DATA:
+        lt_data_after TYPE zbi_inactive_obj_t,
+        lt_data_before TYPE zbi_inactive_obj_t,
+
+        l_date_snapshot_after TYPE dats,
+        l_date_snapshot_before TYPE dats,
+        l_time_snapshot_after TYPE tims,
+        l_time_snapshot_before TYPE tims,
+        l_date_after TYPE dats,
+        l_time_after TYPE tims,
+        l_date_before TYPE dats,
+        l_time_before TYPE tims,
+        l_skip_before TYPE i.
+
+
+
+  IF i_date_after IS SUPPLIED.
+    l_date_after = i_date_after.
+    IF i_time_after IS SUPPLIED.
+      l_time_after = i_time_after.
+    ENDIF.
+  ELSE.
+    l_date_after = sy-datum.
+    l_time_after = sy-uzeit.
+  ENDIF.
+
+
+  IF i_date_before IS SUPPLIED.
+    l_date_before = i_date_before.
+    IF i_time_after IS SUPPLIED.
+      l_time_before = i_time_before.
+    ENDIF.
+  ELSE.
+    l_skip_before = 1.
+    l_date_before = l_date_after.
+    l_time_before = l_time_after.
+  ENDIF.
+
+  CALL FUNCTION &apos;ZBI_INACT_OBJ_SNAPSHOT_GET&apos;
+    EXPORTING
+      i_date          = l_date_after
+      i_time          = l_time_after
+    IMPORTING
+      e_date_snapshot = l_date_snapshot_after
+      e_time_snapshot = l_time_snapshot_after
+    CHANGING
+      ct_data         = lt_data_after
+    EXCEPTIONS
+      no_data_found   = 1
+      OTHERS          = 2.
+  IF sy-subrc &lt;&gt; 0.
+    RAISE no_data_after.
+  ENDIF.
+
+  CALL FUNCTION &apos;ZBI_INACT_OBJ_SNAPSHOT_GET&apos;
+    EXPORTING
+      i_date          = l_date_before
+      i_time          = l_time_before
+      i_skip          = l_skip_before
+    IMPORTING
+      e_date_snapshot = l_date_snapshot_before
+      e_time_snapshot = l_time_snapshot_before
+    CHANGING
+      ct_data         = lt_data_before
+    EXCEPTIONS
+      no_data_found   = 1
+      OTHERS          = 2.
+
+  IF sy-subrc &lt;&gt; 0.
+    RAISE no_data_before.
+  ENDIF.
+
+  &quot; List of activations in diff
+  ct_data_activated = lt_data_after.
+  APPEND LINES OF lt_data_before TO ct_data_activated.
+  SORT ct_data_activated BY type id date_exec DESCENDING time_exec DESCENDING.
+  DELETE ADJACENT DUPLICATES FROM ct_data_activated COMPARING type id.
+  DELETE ct_data_activated WHERE date_exec = l_date_snapshot_after AND time_exec = l_time_snapshot_after.
+
+&quot; List of deactivations in diff
+  ct_data_deactivated = lt_data_after.
+  APPEND LINES OF lt_data_before TO ct_data_deactivated.
+  SORT ct_data_activated BY type id date_exec time_exec.
+  DELETE ADJACENT DUPLICATES FROM ct_data_activated COMPARING type id.
+  DELETE ct_data_activated WHERE date_exec = l_date_snapshot_before AND time_exec = l_time_snapshot_before.</fm_source_new>
+    <functionModuleDocumentation/>
+   </functionmodule>
+  </functionmodules>
+ </FUGR>
+ <PROG NAME="ZBI_INACTIVE_OBJECTS" VARCL="X" SUBC="1" CNAM="EXC060" CDAT="20131114" UNAM="EXC060" UDAT="20131125" VERN="000028" RMAND="001" RLOAD="E" FIXPT="X" SDATE="20131125" STIME="142917" IDATE="20131125" ITIME="142917" UCCHECK="X">
+  <textPool>
+   <language SPRAS="E">
+    <textElement ID="I" KEY="002" ENTRY="All" LENGTH="3 "/>
+    <textElement ID="R" ENTRY="Inactive objects checker" LENGTH="24 "/>
+    <textElement ID="S" KEY="R1" ENTRY="        Get Snapshot" LENGTH="21 "/>
+    <textElement ID="S" KEY="R2" ENTRY="        Make Snapshot" LENGTH="33 "/>
+    <textElement ID="S" KEY="R3" ENTRY="        Diff last 2 snapshots" LENGTH="29 "/>
+    <textElement ID="S" KEY="R4" ENTRY="        Delete recorded snapshots" LENGTH="33 "/>
+   </language>
+  </textPool>
+  <source>*&amp;---------------------------------------------------------------------*
+*&amp; Report  Z_IOC
+*&amp;
+*&amp;---------------------------------------------------------------------*
+*&amp;
+*&amp;
+*&amp;---------------------------------------------------------------------*
+
+REPORT z_inactive_objects LINE-SIZE 400.
+DATA: gt_data TYPE zbi_inactive_obj_t.
+DATA: gt_data_activated TYPE zbi_inactive_obj_t.
+DATA: gt_data_deactivated TYPE zbi_inactive_obj_t.
+DATA: ls_data TYPE zbi_inactive_obj.
+DATA: checkbox_mark TYPE xfeld.
+*SELECTION-SCREEN BEGIN OF BLOCK b1 WITH FRAME TITLE text-001.
+*SELECTION-SCREEN BEGIN OF LINE.
+*PARAMETERS: x_call AS CHECKBOX USER-COMMAND com1.
+*SELECTION-SCREEN COMMENT (25) text-002 FOR FIELD x_call.
+*SELECTION-SCREEN END OF LINE.
+*SELECTION-SCREEN SKIP.
+*PARAMETERS: x_c1 AS CHECKBOX USER-COMMAND com2, &quot; MultiProvider
+*x_c2 AS CHECKBOX USER-COMMAND com2, &quot; Cube
+*x_c3 AS CHECKBOX USER-COMMAND com2, &quot; DSO
+*x_c4 AS CHECKBOX USER-COMMAND com2, &quot; InfoObject
+*x_c5 AS CHECKBOX USER-COMMAND com2, &quot; Transformation
+*x_c6 AS CHECKBOX USER-COMMAND com2, &quot; DTP
+*x_c7 AS CHECKBOX USER-COMMAND com2, &quot; Processchain
+*x_c8 AS CHECKBOX USER-COMMAND com2, &quot; Aggregation Level
+*x_c9 AS CHECKBOX USER-COMMAND com2, &quot; DataSource
+*x_c10 AS CHECKBOX USER-COMMAND com2, &quot; Transfer rule
+*x_c11 AS CHECKBOX USER-COMMAND com2. &quot; Update rule
+*
+*
+*SELECTION-SCREEN END OF BLOCK b1.
+SELECTION-SCREEN BEGIN OF BLOCK b2 WITH FRAME TITLE text-002.
+PARAMETERS: r1 RADIOBUTTON GROUP rbg1 DEFAULT &apos;X&apos;,  &quot; Get last snapshot
+            r2 RADIOBUTTON GROUP rbg1,              &quot; Make new snapshot
+            r3 RADIOBUTTON GROUP rbg1,              &quot; Diff last 2 snapshots
+            r4 RADIOBUTTON GROUP rbg1.
+
+SELECTION-SCREEN END OF BLOCK b2.
+DATA: l_lines TYPE i.
+*AT SELECTION-SCREEN ON x_call.
+*PERFORM at_call.
+*AT SELECTION-SCREEN OUTPUT.
+*PERFORM at_sel_scr_output.
+START-OF-SELECTION.
+  IF r1 = &apos;X&apos;.
+    CALL FUNCTION &apos;ZBI_INACT_OBJ_SNAPSHOT_GET&apos;
+      EXPORTING
+        i_date  = sy-datum
+        i_time  = sy-uzeit
+      CHANGING
+        ct_data = gt_data.
+
+    LOOP AT gt_data INTO ls_data.
+      WRITE: ls_data-type, ls_data-id.
+      NEW-LINE.
+*      WRITE: ls_data-type, ls_data-id, ls_data-description.
+    ENDLOOP.
+  ENDIF.
+
+  IF r2 = &apos;X&apos;.
+    CALL FUNCTION &apos;ZBI_INACT_OBJ_SNAPSHOT_CREATE&apos;
+      EXPORTING
+        i_date  = sy-datum
+        i_time  = sy-uzeit
+        i_save  = &apos;X&apos;
+      CHANGING
+        ct_data = gt_data.
+
+    LOOP AT gt_data INTO ls_data.
+      WRITE: ls_data-type, ls_data-id.
+      NEW-LINE.
+    ENDLOOP.
+  ENDIF.
+
+  IF r3 = &apos;X&apos;.
+
+    CALL FUNCTION &apos;ZBI_INACT_OBJ_SNAPSHOT_DIFF&apos;
+      CHANGING
+        ct_data_activated = gt_data_activated
+        ct_data_deactivated = gt_data_deactivated.
+
+    IF gt_data_activated IS INITIAL.
+      WRITE &apos;No activations&apos;.
+      NEW-LINE.
+    ELSE.
+      WRITE &apos;Activations or Creations&apos;.
+      NEW-LINE.
+      LOOP AT gt_data_activated INTO ls_data.
+        WRITE: ls_data-type, ls_data-id.
+        NEW-LINE.
+*      WRITE: ls_data-type, ls_data-id, ls_data-description.
+      ENDLOOP.
+    ENDIF.
+    IF gt_data_activated IS INITIAL.
+      WRITE &apos;No deactivations&apos;.
+      NEW-LINE.
+    ELSE.
+      WRITE &apos;Deactivations&apos;.
+      NEW-LINE.
+      LOOP AT gt_data_deactivated INTO ls_data.
+        WRITE: ls_data-type, ls_data-id.
+        NEW-LINE.
+*      WRITE: ls_data-type, ls_data-id, ls_data-description.
+      ENDLOOP.
+    ENDIF.
+  ENDIF.
+
+  IF r4 = &apos;X&apos;.
+    CALL FUNCTION &apos;ZBI_INACT_OBJ_SNAPSHOT_RESET&apos;.
+  ENDIF.</source>
+ </PROG>
+ <TABL TABNAME="ZBI_INACTIVE_OBJ" DDLANGUAGE="E" TABCLASS="TRANSP" DATMIN="0000000000" DATMAX="0000000000" DATAVG="0000000000" DDTEXT="ZBI_INACTIVE_OBJects" AUTHCLASS="00" AS4USER="EXC060" AS4DATE="20131114" AS4TIME="105219" CONTFLAG="A" PROZPUFF="000" EXCLASS="1">
+  <dd09l TABNAME="ZBI_INACTIVE_OBJ" AS4LOCAL="A" AS4VERS="0000" TABKAT="3" TABART="APPL0" SCHFELDANZ="000" AS4USER="EXC060" AS4DATE="20131114" AS4TIME="105219" BUFALLOW="N"/>
+  <dd03p TABNAME="ZBI_INACTIVE_OBJ" FIELDNAME="DATE_EXEC" DDLANGUAGE="E" POSITION="0001" KEYFLAG="X" ROLLNAME="DATS" ADMINFIELD="0" INTTYPE="D" INTLEN="000016" NOTNULL="X" DOMNAME="DATS" ROUTPUTLEN="000000" HEADLEN="30" SCRLEN1="10" SCRLEN2="10" SCRLEN3="40" DTELMASTER="D" DATATYPE="DATS" LENG="000008" OUTPUTLEN="000010" DECIMALS="000000" MASK="  DATSE" MASKLEN="0000" DDTEXT="Field of type DATS" REPTEXT="Date in Format YYYYMMDD" SCRTEXT_S="Date" SCRTEXT_M="Date" SCRTEXT_L="Date in Format YYYYMMSS in 8 Characters" DOMMASTER="D" DOMNAME3L="DATS" SHLPORIGIN="T" DEPTH="00" COMPTYPE="E" EXCLASS="0" DBPOSITION="0000" OUTPUTSTYLE="00" STRORLOCPOS="00"/>
+  <dd03p TABNAME="ZBI_INACTIVE_OBJ" FIELDNAME="TIME_EXEC" DDLANGUAGE="E" POSITION="0002" KEYFLAG="X" ROLLNAME="UTIME" ADMINFIELD="0" INTTYPE="T" INTLEN="000012" NOTNULL="X" DOMNAME="UZEIT" ROUTPUTLEN="000000" HEADLEN="00" SCRLEN1="00" SCRLEN2="11" SCRLEN3="20" DTELMASTER="D" DATATYPE="TIMS" LENG="000006" OUTPUTLEN="000008" DECIMALS="000000" MASK="  TIMSE" MASKLEN="0000" DDTEXT="Time of Last Change" SCRTEXT_M="Changed at" SCRTEXT_L="Changed at" DOMNAME3L="UZEIT" SHLPORIGIN="T" DEPTH="00" COMPTYPE="E" EXCLASS="0" DBPOSITION="0000" OUTPUTSTYLE="00" STRORLOCPOS="00"/>
+  <dd03p TABNAME="ZBI_INACTIVE_OBJ" FIELDNAME="TYPE" DDLANGUAGE="E" POSITION="0003" KEYFLAG="X" ROLLNAME="TROBJTYPE" ADMINFIELD="0" INTTYPE="C" INTLEN="000008" NOTNULL="X" DOMNAME="OBJECT" ROUTPUTLEN="000000" HEADLEN="04" SCRLEN1="10" SCRLEN2="15" SCRLEN3="20" DTELMASTER="D" DATATYPE="CHAR" LENG="000004" OUTPUTLEN="000004" DECIMALS="000000" MASK="  CHARE" MASKLEN="0000" DDTEXT="Object Type" REPTEXT="Obj." SCRTEXT_S="Obj. Type" SCRTEXT_M="Object Type" SCRTEXT_L="Object Type" DOMNAME3L="OBJECT" SHLPORIGIN="D" SHLPNAME="SCTSOBJECT" SHLPFIELD="OBJECT" DEPTH="00" COMPTYPE="E" EXCLASS="0" DBPOSITION="0000" OUTPUTSTYLE="00" STRORLOCPOS="00"/>
+  <dd03p TABNAME="ZBI_INACTIVE_OBJ" FIELDNAME="ID" DDLANGUAGE="E" POSITION="0004" KEYFLAG="X" ROLLNAME="RSDAS_VALUE" ADMINFIELD="0" INTTYPE="C" INTLEN="000120" NOTNULL="X" DOMNAME="RSDAS_VALUE" ROUTPUTLEN="000000" HEADLEN="15" SCRLEN1="10" SCRLEN2="15" SCRLEN3="15" DTELMASTER="D" DATATYPE="CHAR" LENG="000060" OUTPUTLEN="000060" DECIMALS="000000" LOWERCASE="X" MASK="  CHARE" MASKLEN="0000" DDTEXT="Parameter Value" REPTEXT="Parameter Value" SCRTEXT_S="Value" SCRTEXT_M="Parameter Value" SCRTEXT_L="Parameter Value" DOMNAME3L="RSDAS_VALUE" DEPTH="00" COMPTYPE="E" EXCLASS="0" DBPOSITION="0000" OUTPUTSTYLE="00" STRORLOCPOS="00"/>
+  <dd03p TABNAME="ZBI_INACTIVE_OBJ" FIELDNAME="DESCRIPTION" DDLANGUAGE="E" POSITION="0005" ROLLNAME="RSTXT255" ADMINFIELD="0" INTTYPE="C" INTLEN="000510" DOMNAME="TEXT255" ROUTPUTLEN="000000" HEADLEN="55" SCRLEN1="10" SCRLEN2="15" SCRLEN3="20" DTELMASTER="E" DATATYPE="CHAR" LENG="000255" OUTPUTLEN="000255" DECIMALS="000000" LOWERCASE="X" MASK="  CHARE" MASKLEN="0000" DDTEXT="Descriptive Text, 255 Characters long" REPTEXT="Description" SCRTEXT_S="Text" SCRTEXT_M="Description" SCRTEXT_L="Description" DOMNAME3L="TEXT255" DEPTH="00" COMPTYPE="E" EXCLASS="0" DBPOSITION="0000" OUTPUTSTYLE="00" STRORLOCPOS="00"/>
+ </TABL>
+ <TTYP TYPENAME="ZBI_INACTIVE_OBJ_T" DDLANGUAGE="E" ROWTYPE="ZBI_INACTIVE_OBJ" ROWKIND="S" DATATYPE="STRU" LENG="000000" DECIMALS="000000" ACCESSMODE="T" KEYDEF="D" KEYKIND="N" KEYFDCOUNT="0000" AS4USER="EXC060" AS4DATE="20131114" AS4TIME="111256" DDTEXT="ZBI_INACTIVE_OBJ_T" TYPELEN="000666" CTLENG="000000" CTDECIMALS="000000" OCCURS="00000"/>
+</nugget>
