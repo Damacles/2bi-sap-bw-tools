@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-16"?>
-<PROG NAME="ZI_VERSION_MGT" VARCL="X" SUBC="1" APPL="B" CNAM="WXF7600" CDAT="20120105" UNAM="WXF7600" UDAT="20120123" VERN="000007" RSTAT="P" RMAND="001" RLOAD="E" FIXPT="X" SDATE="20120123" STIME="111525" IDATE="20120123" ITIME="111525" UCCHECK="X">
+<PROG NAME="ZBW_BEX_QRY_WBK_TPT_CREATE" VARCL="X" SUBC="1" APPL="B" CNAM="EXC060" CDAT="20131009" UNAM="EXC060" UDAT="20131009" VERN="000018" RSTAT="P" RMAND="001" RLOAD="E" FIXPT="X" SDATE="20131009" STIME="151317" IDATE="20131009" ITIME="151317" UCCHECK="X">
  <textPool>
   <language SPRAS="E">
    <textElement ID="R" ENTRY="Version management" LENGTH="18 "/>
@@ -7,7 +7,9 @@
    <textElement ID="S" KEY="P_ID" ENTRY="        Manual selection WB/QR id&apos;s" LENGTH="35 "/>
    <textElement ID="S" KEY="P_QR" ENTRY="        Query" LENGTH="13 "/>
    <textElement ID="S" KEY="P_REL" ENTRY="        Release transport(s)" LENGTH="28 "/>
-   <textElement ID="S" KEY="P_TARGET" ENTRY="        Target System" LENGTH="21 "/>
+   <textElement ID="S" KEY="P_TARGET" ENTRY="        Normal Tpt - Target System" LENGTH="34 "/>
+   <textElement ID="S" KEY="P_TCTGT" ENTRY="        Transport of Copies - Target" LENGTH="36 "/>
+   <textElement ID="S" KEY="P_TOC" ENTRY="        Transport of Copies" LENGTH="27 "/>
    <textElement ID="S" KEY="P_WB" ENTRY="        Workbook" LENGTH="16 "/>
   </language>
   <language SPRAS="N">
@@ -22,38 +24,38 @@
 *&amp;
 *&amp;---------------------------------------------------------------------*
 
-REPORT  ZI_VERSION_MGT.
+REPORT  zbw_bex_qry_wbk_tpt_create.
 
 *********************
 * Data declarations *
 *********************
 
-type-pools : RZD1, RRMX, TRWBO.
+TYPE-POOLS : rzd1, rrmx, trwbo.
 
-tables : E071, tadir, RSRWBINDEXT, RSZELTTXT, RSZCOMPDIR, E070.
+TABLES : e071, tadir, rsrwbindext, rszelttxt, rszcompdir, e070.
 
-data : l_th_eltdir           TYPE rzd1_th_eltdir.
-data : h_compid             TYPE rszcompid.
-data : i_t_qi type rrmx_t_query_info.
-data : as4pos like e071-as4pos.
-data : request type TRWBO_REQUEST_HEADER.
-data : begin of itab occurs 0.
-include type  RRMX_S_QUERY_INFO.
-data : end of itab.
-data : begin of itab2 occurs 0.
-include type rzd1_s_eltdir.
-data : end of itab2.
-data : first_time_vlag.
-data : typetext(20).
-data : string(200).
-data : wb like RSRWORKBOOK-WORKBOOKID.
-data : qu like RSRWORKBOOK-WORKBOOKID.
-data : begin of seltab occurs 0.
-data : i_compid             TYPE rszcompid.
-data : end of seltab.
-data : linecounter type i.
-data : text(60) type c.
-data: w_id(30) type c.
+DATA : l_th_eltdir           TYPE rzd1_th_eltdir.
+DATA : h_compid             TYPE rszcompid.
+DATA : i_t_qi TYPE rrmx_t_query_info.
+DATA : as4pos LIKE e071-as4pos.
+DATA : request TYPE trwbo_request_header.
+DATA : BEGIN OF itab OCCURS 0.
+        INCLUDE TYPE  rrmx_s_query_info.
+DATA : END OF itab.
+DATA : BEGIN OF itab2 OCCURS 0.
+        INCLUDE TYPE rzd1_s_eltdir.
+DATA : END OF itab2.
+DATA : first_time_vlag.
+DATA : typetext(20).
+DATA : string(200).
+DATA : wb LIKE rsrworkbook-workbookid.
+DATA : qu LIKE rsrworkbook-workbookid.
+DATA : BEGIN OF seltab OCCURS 0.
+DATA : i_compid             TYPE rszcompid.
+DATA : END OF seltab.
+DATA : linecounter TYPE i.
+DATA : text(60) TYPE c.
+DATA: w_id(30) TYPE c.
 ***************************
 * Selection-screen        *
 ***************************
@@ -63,60 +65,85 @@ SELECTION-SCREEN BEGIN OF BLOCK sel1
 
 SELECT-OPTIONS :
 
-p_id for w_id no intervals.
+p_id FOR w_id NO INTERVALS.
 
 PARAMETERS :
    p_wb   RADIOBUTTON GROUP gr1,
-   p_qr   RADIOBUTTON GROUP gr1 default &apos;X&apos;.
+   p_qr   RADIOBUTTON GROUP gr1 DEFAULT &apos;X&apos;.
 
 SELECTION-SCREEN END OF BLOCK sel1.
 
 SELECTION-SCREEN BEGIN OF BLOCK sel2
                           WITH FRAME TITLE text-002.
+PARAMETERS : p_toc TYPE c AS CHECKBOX user-command test.
+PARAMETERS p_rel AS CHECKBOX.
 SELECT-OPTIONS :
-
-p_target for e070-tarsystem obligatory no intervals default &apos;BIT.001&apos;,
-p_devcl for tadir-devclass obligatory no intervals default &apos;ZBW&apos;.
-parameters p_rel as checkbox.
+p_devcl FOR tadir-devclass OBLIGATORY NO INTERVALS DEFAULT &apos;ZBW&apos;.
 
 SELECTION-SCREEN END OF BLOCK sel2.
 
 
+SELECTION-SCREEN BEGIN OF BLOCK sel3
+                          WITH FRAME TITLE text-003.
+SELECT-OPTIONS :
+p_target FOR e070-tarsystem OBLIGATORY NO INTERVALS DEFAULT &apos;BIT.001&apos; modif id 301.
+SELECTION-SCREEN END OF BLOCK sel3.
+
+SELECTION-SCREEN BEGIN OF BLOCK sel4
+                          WITH FRAME TITLE text-004.
+SELECT-OPTIONS :
+p_tctgt FOR e070-tarsystem OBLIGATORY NO INTERVALS DEFAULT &apos;BID&apos; modif id 401.
+SELECTION-SCREEN END OF BLOCK sel4.
+
+AT SELECTION-SCREEN OUTPUT.
+LOOP AT SCREEN.
+  IF SCREEN-GROUP1 = &apos;301&apos; AND p_toc EQ &apos;X&apos;.
+    SCREEN-ACTIVE = &apos;0&apos;.
+    MODIFY SCREEN.
+    CONTINUE.
+  ELSEIF SCREEN-GROUP1 = &apos;401&apos; AND p_toc EQ &apos;&apos;.
+    SCREEN-ACTIVE = &apos;0&apos;.
+    MODIFY SCREEN.
+    CONTINUE.
+  ENDIF.
+ENDLOOP.
+
+START-OF-selection.
 **************************************
 * Program Logic                      *
 **************************************
 
-loop at p_id.
+LOOP AT p_id.
 
 ***************************************
 * Radio button : query or workbook ?  *
 ***************************************
 
-  if p_qr eq &apos;X&apos;.     &quot;Query selected
+  IF p_qr EQ &apos;X&apos;.     &quot;Query selected
 
-    clear text.
+    CLEAR text.
     text = &apos;Query &apos;.
 
 * Select your query
 
     h_compid = p_id-low.
 
-    select single * from rszcompdir
-    where objvers eq &apos;A&apos;
-    and compid = h_compid.
+    SELECT SINGLE * FROM rszcompdir
+    WHERE objvers EQ &apos;A&apos;
+    AND compid = h_compid.
 
-    if sy-subrc eq 0.
+    IF sy-subrc EQ 0.
       qu = rszcompdir-compuid.
-    endif.
+    ENDIF.
 
-    perform druk_header using qu.
+    PERFORM druk_header USING qu.
 
     itab-compuid = qu.
-    append itab.
+    APPEND itab.
 
-  else.               &quot;Workbook selected
+  ELSE.               &quot;Workbook selected
 
-    clear text.
+    CLEAR text.
     text = &apos;Workbook&apos;.
 
 * Select your workbook
@@ -125,37 +152,37 @@ loop at p_id.
 
     wb = h_compid.
 
-    perform druk_header using wb.
+    PERFORM druk_header USING wb.
 
 * Get all queries related to workbook
 
     CALL FUNCTION &apos;RRMX_WORKBOOK_QUERIES_GET&apos;
       EXPORTING
-        I_WORKBOOKID                   = wb
-        I_OBJVERS                      = RS_C_OBJVERS-ACTIVE
+        i_workbookid                   = wb
+        i_objvers                      = rs_c_objvers-active
 *   I_ACTVT                        =
      IMPORTING
-       E_T_QUERY_INFO                 = i_t_qi
+       e_t_query_info                 = i_t_qi
 * EXCEPTIONS
 *   NO_WORKBOOK_ID_SPECIFIED       = 1
 *   NO_QUERY_AUTHORITIES           = 2
 *   OTHERS                         = 3
               .
-    IF SY-SUBRC &lt;&gt; 0.
+    IF sy-subrc &lt;&gt; 0.
 * MESSAGE ID SY-MSGID TYPE SY-MSGTY NUMBER SY-MSGNO
 *         WITH SY-MSGV1 SY-MSGV2 SY-MSGV3 SY-MSGV4.
     ENDIF.
 
-    refresh : itab, itab2.
+    REFRESH : itab, itab2.
 
     itab[] = i_t_qi[].
 
-  endif.
+  ENDIF.
 
 
 * Retrieve all components belonging to query
 
-  loop at itab.
+  LOOP AT itab.
 
 * Get all Query Elements and store them in l_th_eltdir
 
@@ -165,13 +192,13 @@ loop at p_id.
 *   I_INFOCUBE                  =
 *   I_VARIABLE_TYPES            =
 *   I_VARIABLE_INFOOBJECT       =
-       I_ELTUID                    = itab-compuid
+       i_eltuid                    = itab-compuid
 *   I_LANGUAGE                  = SY-LANGU
-       I_OBJVERS                   = RS_C_OBJVERS-ACTIVE
+       i_objvers                   = rs_c_objvers-active
 *   I_T_ELTUID                  =
-       I_USE_XREF_BUFFER           = &apos;A&apos;
+       i_use_xref_buffer           = &apos;A&apos;
      IMPORTING
-       E_TH_ELTDIR                 = l_th_eltdir
+       e_th_eltdir                 = l_th_eltdir
 *   E_TH_ELTTXT                 =
 *   E_TH_ELTPROP                =
 *   E_TH_ELTPRIO                =
@@ -191,93 +218,113 @@ loop at p_id.
 *   INCONSISTENCY               = 2
 *   OTHERS                      = 3
               .
-    IF SY-SUBRC &lt;&gt; 0.
+    IF sy-subrc &lt;&gt; 0.
 * MESSAGE ID SY-MSGID TYPE SY-MSGTY NUMBER SY-MSGNO
 *         WITH SY-MSGV1 SY-MSGV2 SY-MSGV3 SY-MSGV4.
     ENDIF.
 
-    if first_time_vlag ne &apos;X&apos;.
+    IF first_time_vlag NE &apos;X&apos;.
 
-      concatenate text h_compid into text separated by space.
+      CONCATENATE text h_compid INTO text SEPARATED BY space.
 
-
+      IF p_toc IS INITIAL.
 * Create transport
 
-      CALL FUNCTION &apos;TR_INSERT_REQUEST_WITH_TASKS&apos;
-        EXPORTING
-          IV_TYPE                 = &apos;K&apos;
-          IV_TEXT                 = text
+        CALL FUNCTION &apos;TR_INSERT_REQUEST_WITH_TASKS&apos;
+          EXPORTING
+            iv_type                 = &apos;K&apos;
+            iv_text                 = text
 *   IV_OWNER                = SY-UNAME
-      IV_TARGET               = P_TARGET-LOW
+        iv_target               = p_target-low
 *   IT_ATTRIBUTES           =
 *   IT_USERS                =
 *   IV_TARDEVCL             =
 *   IV_DEVCLASS             =
 *   IV_TARLAYER             =
-   IMPORTING
-     ES_REQUEST_HEADER       = request
+     IMPORTING
+       es_request_header       = request
 *   ET_TASK_HEADERS         =
 * EXCEPTIONS
 *   INSERT_FAILED           = 1
 *   ENQUEUE_FAILED          = 2
 *   OTHERS                  = 3
-                .
-      IF SY-SUBRC &lt;&gt; 0.
+                  .
+        IF sy-subrc &lt;&gt; 0.
 * MESSAGE ID SY-MSGID TYPE SY-MSGTY NUMBER SY-MSGNO
 *         WITH SY-MSGV1 SY-MSGV2 SY-MSGV3 SY-MSGV4.
-      ENDIF.
+        ENDIF.
+      ELSE.
 
+data: ls_req type TREXREQHD.
+
+        CALL FUNCTION &apos;TR_EXT_CREATE_REQUEST&apos;
+          EXPORTING
+            iv_request_type = &apos;T&apos;
+            iv_target       = p_tctgt-low
+            iv_author       = sy-uname
+            iv_text         = text
+*           IV_REQ_ATTR     =
+*           IV_ATTR_REF     =
+          IMPORTING
+*           ES_REQ_ID       =
+            es_req_header   = ls_req
+*           ES_MSG          =
+*           EV_EXCEPTION    =
+          .
+
+        request = ls_req-REQ_ID.
+      ENDIF.
 
 * Add workbook to transport request
 
-      if p_qr ne &apos;X&apos;.
+      IF p_qr NE &apos;X&apos;.
 
-        perform add_to_transport using &apos;R3TR&apos; &apos;XLWB&apos; wb  request.
+        PERFORM add_to_transport USING &apos;R3TR&apos; &apos;XLWB&apos; wb  request.
 
-      endif.
+      ENDIF.
 
       first_time_vlag = &apos;X&apos;.
 
-    endif.
+    ENDIF.
 
 * Add query / queries to transport request.
 
     itab2[] = l_th_eltdir[].
 
-    sort itab2 by deftp.
+    SORT itab2 BY deftp.
 
-    loop at itab2.
+    LOOP AT itab2.
 
-      perform add_to_transport using &apos;R3TR&apos; &apos;ELEM&apos; itab2-eltuid request.
+      PERFORM add_to_transport USING &apos;R3TR&apos; &apos;ELEM&apos; itab2-eltuid request.
 
-      perform druk_logging using itab2-eltuid request.
+      PERFORM druk_logging USING itab2-eltuid request.
 
-    endloop.
+    ENDLOOP.
 
-  endloop.
+  ENDLOOP.
 
-  clear first_time_vlag.
+  CLEAR first_time_vlag.
 
 * Display generated transport request name
 
-  write :/.
-  write :/ &apos;Generated transport&apos;, request-trkorr, request-as4text.
+  WRITE :/.
+  WRITE :/ &apos;Generated transport&apos;, request-trkorr, request-as4text.
 
 * Check if generated transport request should be released or not
 
-  if p_rel eq &apos;X&apos;.
+  IF p_rel EQ &apos;X&apos;.
 
     CALL FUNCTION &apos;TRINT_RELEASE_REQUEST&apos;
       EXPORTING
-        IV_TRKORR                         = request-trkorr
+        iv_trkorr                         = request-trkorr
 *     IV_DIALOG                         = &apos;X&apos;
 *      IV_AS_BACKGROUND_JOB              = &apos;X&apos;
 *     IV_SUCCESS_MESSAGE                = &apos;X&apos;
 *     IV_WITHOUT_OBJECTS_CHECK          = &apos; &apos;
 *     IV_CALLED_BY_PERFORCE             = &apos; &apos;
 *     IV_WITHOUT_DOCU                   = &apos; &apos;
-      IV_WITHOUT_LOCKING                = &apos;X&apos;
-      IV_DISPLAY_EXPORT_LOG             = &apos;&apos;
+      iv_without_locking                = &apos;X&apos;
+      iv_display_export_log             = &apos;&apos;
 *   IMPORTING
 *     ES_REQUEST                        =
 *     ET_DELETED_TASKS                  =
@@ -302,19 +349,19 @@ loop at p_id.
 *     OBJECT_LANG_ERROR                 = 17
 *     OTHERS                            = 18
               .
-    IF SY-SUBRC &lt;&gt; 0.
+    IF sy-subrc &lt;&gt; 0.
 * MESSAGE ID SY-MSGID TYPE SY-MSGTY NUMBER SY-MSGNO
 *         WITH SY-MSGV1 SY-MSGV2 SY-MSGV3 SY-MSGV4.
 
-      Write :/ &apos;Problem while releasing request&apos;, request-trkorr.
+      WRITE :/ &apos;Problem while releasing request&apos;, request-trkorr.
 
 
     ENDIF.
 
 
-  endif.
+  ENDIF.
 
-endloop.
+ENDLOOP.
 
 *&amp;---------------------------------------------------------------------*
 *&amp;      Form  add_to_transport
@@ -323,45 +370,45 @@ endloop.
 *----------------------------------------------------------------------*
 *      --&gt;P_REQUEST  text
 *----------------------------------------------------------------------*
-FORM add_to_transport  USING    P_PGMID
-                                P_OBJECT
-                                P_TRANSTRU_LOW
-                                P_TRKORR.
-  select single * from e071
-   where trkorr eq P_TRKORR
-   and  pgmid eq P_PGMID
-   and  object eq P_OBJECT
-   and  obj_name eq P_TRANSTRU_LOW.
+FORM add_to_transport  USING    p_pgmid
+                                p_object
+                                p_transtru_low
+                                p_trkorr.
+  SELECT SINGLE * FROM e071
+   WHERE trkorr EQ p_trkorr
+   AND  pgmid EQ p_pgmid
+   AND  object EQ p_object
+   AND  obj_name EQ p_transtru_low.
 
-  if sy-subrc ne 0.
+  IF sy-subrc NE 0.
 
-    select max( as4pos )
-    into as4pos
-    from e071
-    where trkorr eq p_trkorr.
+    SELECT MAX( as4pos )
+    INTO as4pos
+    FROM e071
+    WHERE trkorr EQ p_trkorr.
 
     as4pos   = as4pos + 1 .
 
-    e071-trkorr = P_TRKORR.
+    e071-trkorr = p_trkorr.
     e071-as4pos = as4pos.
-    e071-pgmid = P_PGMID.
-    e071-object = P_OBJECT.
-    e071-obj_name = P_TRANSTRU_LOW.
+    e071-pgmid = p_pgmid.
+    e071-object = p_object.
+    e071-obj_name = p_transtru_low.
 
-    insert into e071 values e071.
+    INSERT INTO e071 VALUES e071.
 
-    select single * from tadir
-     where pgmid = P_PGMID
-     and object  = P_OBJECT
-     and obj_name eq P_TRANSTRU_LOW.
+    SELECT SINGLE * FROM tadir
+     WHERE pgmid = p_pgmid
+     AND object  = p_object
+     AND obj_name EQ p_transtru_low.
 
-    if sy-subrc eq 0 and tadir-devclass eq &apos;$TMP&apos;.
+    IF sy-subrc EQ 0 AND tadir-devclass EQ &apos;$TMP&apos;.
       tadir-devclass = p_devcl-low.
-      modify tadir.
-    endif.
+      MODIFY tadir.
+    ENDIF.
 
 
-  endif.
+  ENDIF.
 
 
 ENDFORM.                    &quot; add_to_transport
@@ -373,36 +420,36 @@ ENDFORM.                    &quot; add_to_transport
 *      --&gt;P_ITAB2_ELTUID  text
 *      --&gt;P_REQUEST  text
 *----------------------------------------------------------------------*
-FORM druk_logging  USING    P_ITAB2_ELTUID
-                            P_REQUEST.
+FORM druk_logging  USING    p_itab2_eltuid
+                            p_request.
 
-  case itab2-deftp.
+  CASE itab2-deftp.
 
-    when &apos;REP&apos;.
+    WHEN &apos;REP&apos;.
       typetext = &apos;Query&apos;.
-    when &apos;VAR&apos;.
+    WHEN &apos;VAR&apos;.
       typetext = &apos;Variable&apos;.
-    when &apos;STR&apos;.
+    WHEN &apos;STR&apos;.
       typetext = &apos;Structure&apos;.
-    when &apos;SEL&apos;.
+    WHEN &apos;SEL&apos;.
       typetext = &apos;Selection/Rest. KF&apos;.
-    when &apos;CKF&apos;.
+    WHEN &apos;CKF&apos;.
       typetext = &apos;Calculated Keyfigure&apos;.
-    when &apos;FML&apos;.
+    WHEN &apos;FML&apos;.
       typetext = &apos;Formula&apos;.
 
-  endcase.
+  ENDCASE.
 
 
-  select single * from RSZELTTXT
-  where eltuid = P_ITAB2_ELTUID
-  and objvers = &apos;A&apos;
-  and langu = &apos;EN&apos;.
+  SELECT SINGLE * FROM rszelttxt
+  WHERE eltuid = p_itab2_eltuid
+  AND objvers = &apos;A&apos;
+  AND langu = &apos;EN&apos;.
 
 *  concatenate typetext P_ITAB2_ELTUID RSZELTTXT-txtlg into string.
 
-  write :/ typetext color col_total,  P_ITAB2_ELTUID, RSZELTTXT-txtlg
-  color col_group.
+  WRITE :/ typetext COLOR COL_TOTAL,  p_itab2_eltuid, rszelttxt-txtlg
+  COLOR COL_GROUP.
 
 ENDFORM.                    &quot; druk_logging
 *&amp;---------------------------------------------------------------------*
@@ -412,36 +459,36 @@ ENDFORM.                    &quot; druk_logging
 *----------------------------------------------------------------------*
 *      --&gt;P_WB  text
 *----------------------------------------------------------------------*
-FORM druk_header  USING    P_WB.
+FORM druk_header  USING    p_wb.
 
-  if p_qr eq &apos;X&apos;.
+  IF p_qr EQ &apos;X&apos;.
 
-    select single * from RSZELTTXT
-     where eltuid = P_WB
-     and objvers = &apos;A&apos;
-     and langu = &apos;EN&apos;.
+    SELECT SINGLE * FROM rszelttxt
+     WHERE eltuid = p_wb
+     AND objvers = &apos;A&apos;
+     AND langu = &apos;EN&apos;.
 
-    concatenate &apos;Query&apos; p_WB rszelttxt-txtlg into string separated by space
+    CONCATENATE &apos;Query&apos; p_wb rszelttxt-txtlg INTO string SEPARATED BY space
     .
 
 
-  else.
+  ELSE.
 
-    select single * from RSRWBINDEXT
-    where langu = &apos;EN&apos;
-    and workbookid = wb
-    and objvers eq &apos;A&apos;.
+    SELECT SINGLE * FROM rsrwbindext
+    WHERE langu = &apos;EN&apos;
+    AND workbookid = wb
+    AND objvers EQ &apos;A&apos;.
 
-    concatenate &apos;Workbook&apos; p_wb RSRWBINDEXT-TITLE into string separated by
+    CONCATENATE &apos;Workbook&apos; p_wb rsrwbindext-title INTO string SEPARATED BY
     space.
 
-  endif.
+  ENDIF.
 
-  if sy-subrc eq &apos;0&apos;.
+  IF sy-subrc EQ &apos;0&apos;.
 
-    write :/ string  COLOR COL_HEADING .
-    write :/.
-  endif.
+    WRITE :/ string  COLOR COL_HEADING .
+    WRITE :/.
+  ENDIF.
 
 
 ENDFORM.                    &quot; druk_header</source>
