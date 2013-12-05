@@ -1,0 +1,576 @@
+<?xml version="1.0" encoding="utf-16"?>
+<nugget name="ZBW_SET_ROOSPRMS_IN_SRC">
+ <FUGR AREA="ZBW_SET_ROOSPRMS_IN_SRC" SPRAS="E" AREAT="ZBW_SET_ROOSPRMS_IN_SRC">
+  <functionGroupDocumentation/>
+  <mainprogram NAME="SAPLZBW_SET_ROOSPRMS_IN_SRC" VARCL="X" DBAPL="S" DBNA="D$" SUBC="F" APPL="S" CNAM="EXC060" CDAT="20130910" UNAM="EXC060" UDAT="20130910" VERN="000002" RMAND="001" RLOAD="E" FIXPT="X" SDATE="20130910" STIME="143359" IDATE="20130910" ITIME="124143" LDBNAME="D$S" UCCHECK="X">
+   <textPool/>
+   <source>*******************************************************************
+*   System-defined Include-files.                                 *
+*******************************************************************
+  INCLUDE LZBW_SET_ROOSPRMS_IN_SRCTOP.       &quot; Global Data
+  INCLUDE LZBW_SET_ROOSPRMS_IN_SRCUXX.       &quot; Function Modules
+
+*******************************************************************
+*   User-defined Include-files (if necessary).                    *
+*******************************************************************
+* INCLUDE LZBW_SET_ROOSPRMS_IN_SRCF...       &quot; Subroutines
+* INCLUDE LZBW_SET_ROOSPRMS_IN_SRCO...       &quot; PBO-Modules
+* INCLUDE LZBW_SET_ROOSPRMS_IN_SRCI...       &quot; PAI-Modules
+* INCLUDE LZBW_SET_ROOSPRMS_IN_SRCE...       &quot; Events
+* INCLUDE LZBW_SET_ROOSPRMS_IN_SRCP...       &quot; Local class implement.</source>
+  </mainprogram>
+  <includeprograms>
+   <include NAME="LZBW_SET_ROOSPRMS_IN_SRCTOP" DBAPL="S" DBNA="D$" SUBC="I" APPL="S" CNAM="EXC060" CDAT="20130910" UNAM="EXC060" UDAT="20130910" VERN="000002" RMAND="001" FIXPT="X" SDATE="20130910" STIME="124143" IDATE="20130910" ITIME="124143" LDBNAME="D$S" UCCHECK="X">
+    <include_source>FUNCTION-POOL ZBW_SET_ROOSPRMS_IN_SRC.      &quot;MESSAGE-ID ..
+
+* INCLUDE LZBW_SET_ROOSPRMS_IN_SRCD...       &quot; Local class definition</include_source>
+   </include>
+  </includeprograms>
+  <functionmodules>
+   <functionmodule NAME="ZBW_SET_ROOSPRMS_IN_SRC" STEXT="ZBW_SET_ROOSPRMS_IN_SRC">
+    <importing PARAMETER="I_LOGSYS" DBFIELD="TBDLS-LOGSYS" REFERENCE="X"/>
+    <importing PARAMETER="I_OLTPSOURCE" REFERENCE="X" TYP="RSOLTPSOURCER"/>
+    <importing PARAMETER="I_PACKSIZE_FORCE2" REFERENCE="X" TYP="RSIDOCSIZE"/>
+    <importing PARAMETER="I_READONLY" DEFAULT="&apos;X&apos;" OPTIONAL="X" REFERENCE="X" TYP="FLAG"/>
+    <tables PARAMETER="T_ROOSPRMS" DBSTRUCT="ROOSPRMS"/>
+    <exceptions EXCEPTION="BWSOURCE_NOT_FOUND"/>
+    <documentation PARAMETER="I_LOGSYS" KIND="P" STEXT="Logical System" INDEX=" 001"/>
+    <documentation PARAMETER="I_OLTPSOURCE" KIND="P" STEXT="DataSource" INDEX=" 002"/>
+    <documentation PARAMETER="I_PACKSIZE_FORCE2" KIND="P" STEXT="Maximum size of a data packet in kilo bytes" INDEX=" 003"/>
+    <documentation PARAMETER="I_READONLY" KIND="P" STEXT="General Flag" INDEX=" 004"/>
+    <documentation PARAMETER="T_ROOSPRMS" KIND="P" STEXT="Control Parameters Per DataSource" INDEX=" 005"/>
+    <documentation PARAMETER="BWSOURCE_NOT_FOUND" KIND="X" STEXT="BWSOURCE_NOT_FOUND" INDEX=" 006"/>
+    <fm_source>tables: tbdlst.
+  data: l_bwsource type RSISOURCE.
+  data: l_rlogsys like rsbasidoc-rlogsys.
+  data: l_dest type rfcdest.
+  data: begin of l_t_oltp occurs 0,
+          oltpsource like roosprmsc-oltpsource,
+        end of l_t_oltp.
+  data: l_t_roosprms like roosprms   occurs 0 with header line.
+  data: l_t_f_dummy  like roosprmsf  occurs 0 with header line.
+  data: l_t_q_dummy  like rorqstprms occurs 0 with header line.
+  data: l_t_c_dummy   like roosprmsc  occurs 0 with header line.
+  data: l_t_oltpsource type rsaos_t_oltpsource.
+  data: l_s_oltpsource type rsaos_s_oltpsource.
+  data: l_t_oltpsourcet type rsaos_t_oltpsourcet.
+  data: l_s_oltpsourcet type rsaos_s_oltpsourcet.
+  data: l_s_rsbasidoc like rsbasidoc.
+*  data: l_icon like g_icon_td_act.
+  data: l_text(60).
+
+  data: l_flat_file type c.
+
+types:
+      begin of ty_1800,
+        oltpsource type rsoltpsourcer,
+        oltpsource_text type rstxtlg,
+        bwsource type rssource,
+        bwsource_text type rstxtlg,
+        rlogsys  type rsrlogsys,
+        srlogsys type rsslogsys,
+        updmode  type rsupdmode,
+        updmode_text(30),
+        maxsize  type rsidocsize,
+        statfrqu type rostatfrqu,
+        maxprocs type romaxprocs,
+        maxdpaks type romaxdpaks,
+        image(132),
+      end of ty_1800.
+
+data:
+      l_t_1800 type TABLE OF ty_1800 initial SIZE 0 WITH HEADER LINE.
+
+FIELD-SYMBOLS: &lt;s_1800&gt; type ty_1800.
+
+data: l_s_roidocprms like roidocprms.
+
+
+&quot; Get BWSOURCE from OLTPSOURCE via table RSISOSMAP
+select single isource from rsisosmap
+  into l_bwsource
+  where oltpsource = i_oltpsource
+    and logsys = i_logsys
+    and objvers = &apos;A&apos;.
+
+if sy-subrc &lt;&gt; 0.
+  raise BWSOURCE_NOT_FOUND.
+  endif.
+
+  call function &apos;RSA_LOGICAL_SYSTEM_BIW_GET&apos;
+    exporting
+      i_without_popup = &apos;X&apos;
+    importing
+      e_logsys_biw    = l_rlogsys
+    exceptions
+      others          = 1.
+  call function &apos;RSAR_DESTINATION_GET&apos;
+    exporting
+      i_logsys      = i_logsys
+    importing
+      e_destination = l_dest
+    exceptions
+      not_exist     = 1
+      others        = 2.
+  if sy-subrc &lt;&gt; 0.
+    l_dest = i_logsys.
+  endif.
+
+  select single * from rsbasidoc into l_s_rsbasidoc where
+         slogsys = i_logsys and
+         rlogsys = l_rlogsys.
+  if sy-subrc = 0 and
+     cl_rsar_srctype=&gt;sapsystem( l_s_rsbasidoc-srctype ) = rs_c_false.
+    l_dest = &apos;NONE&apos;.
+    l_flat_file = &apos;X&apos;.
+  endif.
+
+  refresh l_t_oltpsource.
+  if i_oltpsource is initial.
+    call function &apos;RSAOS_OLTPSOURCE_GET_BY_PROP&apos;
+      exporting
+        i_isource       = l_bwsource
+        i_logsys        = i_logsys
+        i_objvers       = &apos;A&apos;
+      importing
+        e_t_oltpsource  = l_t_oltpsource
+        e_t_oltpsourcet = l_t_oltpsourcet
+      exceptions
+        others          = 1.
+    if sy-subrc &lt;&gt; 0.
+      message id sy-msgid type &apos;I&apos; number sy-msgno
+            with sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
+      exit.
+    endif.
+
+       loop at l_t_oltpsource into l_s_oltpsource.
+      l_t_oltp-oltpsource = l_s_oltpsource-oltpsource.
+      append l_t_oltp.
+    endloop.
+    sort l_t_oltp.
+    delete adjacent duplicates from l_t_oltp.
+  else.
+    call function &apos;RSAOS_OLTPSOURCE_GET_BY_PROP&apos;
+      exporting
+        i_isource       = l_bwsource
+        i_oltpsource    = i_oltpsource
+        i_logsys        = i_logsys
+        i_objvers       = &apos;A&apos;
+      importing
+        e_t_oltpsource  = l_t_oltpsource
+        e_t_oltpsourcet = l_t_oltpsourcet
+      exceptions
+        not_unique      = 1
+        not_exist       = 2
+        internal_error  = 3
+        others          = 4.
+    if sy-subrc &lt;&gt; 0.
+      data: l_s_ds   type rsds.
+      data: l_t_dst  type rsds_t_rsdst.
+      data: l_s_dst  type rsdst.
+      call function &apos;RSDS_DATASOURCE_SINGLE_GET&apos;
+        exporting
+          i_datasource           = i_oltpsource
+          i_logsys               = i_logsys
+*         I_OBJVERS              = RS_C_OBJVERS-ACTIVE
+          i_old_ds               = rs_c_false
+*         I_NEW_DS               = RS_C_TRUE
+        importing
+          e_s_ds                 = l_s_ds
+          e_t_dst                = l_t_dst
+*         E_T_DSSEG              =
+*         E_T_DSSEGT             =
+*         E_T_DSSEGFD            =
+*         E_T_DSSEGFDT           =
+*         E_T_DSACCESSATTR       =
+*         E_OLD_DS               =
+*         E_T_SELFD              =
+*         E_ISOSTYPE             =
+        exceptions
+          not_found              = 1
+          internal_error         = 2
+          others                 = 3.
+      if sy-subrc &lt;&gt; 0.
+        message id sy-msgid type &apos;I&apos; number sy-msgno
+           with sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
+        exit.
+      endif.
+      move-corresponding l_s_ds to l_s_oltpsource.
+      append l_s_oltpsource to l_t_oltpsource.
+      loop at l_t_dst into l_s_dst.
+        move-corresponding l_s_dst to l_s_oltpsourcet.
+        append l_s_oltpsourcet to l_t_oltpsourcet.
+      endloop.
+    endif.
+    l_t_oltp-oltpsource = i_oltpsource.
+    append l_t_oltp.
+  endif.
+
+
+  refresh l_t_1800.
+  loop at l_t_oltp.
+    if l_dest = &apos;NONE&apos;.
+      select * from roosprms into table l_t_roosprms where
+             oltpsource = l_t_oltp-oltpsource and
+             rlogsys    = l_rlogsys and
+             srlogsys   = i_logsys.
+    else.
+      call function &apos;RSA1_OLTPSOURCE_GET_SELECTIONS&apos;
+        destination l_dest
+        exporting
+          i_oltpsource   = l_t_oltp-oltpsource
+          i_rlogsys      = l_rlogsys
+        importing
+          e_s_roidocprms = l_s_roidocprms
+        tables
+          e_t_roosprms   = l_t_roosprms
+          e_t_roosprmsc  = l_t_c_dummy
+          e_t_roosprmsf  = l_t_f_dummy
+          e_t_rorqstprms = l_t_q_dummy.
+    endif.
+    read table l_t_oltpsource into l_s_oltpsource with key
+         oltpsource = l_t_oltp-oltpsource.
+    clear l_t_1800.
+*    case l_s_oltpsource-type.
+*      when &apos;D&apos;.
+*        l_icon = g_icon_td_act.
+*        l_text = text-227.
+*      when &apos;T&apos;.
+*        l_icon = g_icon_texts_act.
+*        l_text = text-225.
+*      when &apos;H&apos;.
+*        l_icon = g_icon_hier_act.
+*        l_text = text-226.
+*      when &apos;M&apos;.
+*        l_icon = g_icon_metadat_act.
+*        l_text = text-224.
+*      when others.
+*        clear: l_icon, l_text.
+*    endcase.
+*    if not l_icon is initial.
+*      call function &apos;RSSM_ICON_CREATE&apos;
+*        exporting
+*          name   = l_icon
+*          info   = l_text
+*        importing
+*          result = g_t_1800-image.
+*    endif.
+
+    l_t_1800-bwsource = l_bwsource.
+*    l_t_1800-bwsource_text = l_bwsource_text.
+    l_t_1800-oltpsource = l_t_oltp-oltpsource.
+    read table l_t_oltpsourcet into l_s_oltpsourcet with key
+         oltpsource = l_t_oltp-oltpsource
+         langu      = sy-langu.
+    if sy-subrc = 0.
+      l_t_1800-oltpsource_text = l_s_oltpsourcet-txtlg.
+    endif.
+
+    read table l_t_roosprms with key
+         updmode = &apos;F&apos;.
+    if sy-subrc = 0.
+      l_t_1800-maxsize    = l_t_roosprms-maxsize.
+      l_t_1800-statfrqu   = l_t_roosprms-statfrqu.
+      l_t_1800-maxprocs   = l_t_roosprms-maxprocs.
+      l_t_1800-maxdpaks   = 0.
+    else.
+      clear: l_t_1800-maxsize, l_t_1800-statfrqu, l_t_1800-maxprocs,
+             l_t_1800-maxdpaks.
+    endif.
+    l_t_1800-updmode = &apos;F&apos;.
+    l_t_1800-updmode_text = text-267.
+    append l_t_1800.
+
+    if not l_s_oltpsource-delta is initial.
+      read table l_t_roosprms with key
+           updmode = &apos;D&apos;.
+      if sy-subrc = 0.
+        l_t_1800-maxsize    = l_t_roosprms-maxsize.
+        l_t_1800-statfrqu   = l_t_roosprms-statfrqu.
+        l_t_1800-maxprocs   = l_t_roosprms-maxprocs.
+        l_t_1800-maxdpaks   = l_t_roosprms-maxdpaks.
+      else.
+        clear: l_t_1800-maxsize, l_t_1800-statfrqu,
+               l_t_1800-maxdpaks, l_t_1800-maxprocs.
+      endif.
+      l_t_1800-updmode = &apos;D&apos;.
+      l_t_1800-updmode_text = text-266.
+      append l_t_1800.
+
+      read table l_t_roosprms with key
+           updmode = &apos;C&apos;.
+      if sy-subrc = 0.
+        l_t_1800-maxsize    = l_t_roosprms-maxsize.
+        l_t_1800-statfrqu   = l_t_roosprms-statfrqu.
+        l_t_1800-maxprocs   = l_t_roosprms-maxprocs.
+        l_t_1800-maxdpaks   = 0.
+      else.
+        clear: l_t_1800-maxsize, l_t_1800-statfrqu,
+               l_t_1800-maxdpaks, l_t_1800-maxprocs.
+      endif.
+      l_t_1800-updmode = &apos;C&apos;.
+      l_t_1800-updmode_text = text-265.
+      append l_t_1800.
+    endif.
+
+    if not l_s_oltpsource-stockupd is initial.
+      read table l_t_roosprms with key
+           updmode = &apos;I&apos;.
+      if sy-subrc = 0.
+        l_t_1800-maxsize    = l_t_roosprms-maxsize.
+        l_t_1800-statfrqu   = l_t_roosprms-statfrqu.
+        l_t_1800-maxprocs   = l_t_roosprms-maxprocs.
+        l_t_1800-maxdpaks   = 0.
+      else.
+        clear: l_t_1800-maxsize, l_t_1800-statfrqu,
+               l_t_1800-maxdpaks, l_t_1800-maxprocs.
+      endif.
+      l_t_1800-updmode = &apos;I&apos;.
+      l_t_1800-updmode_text = text-264.
+      append l_t_1800.
+    endif.
+  endloop.
+
+  select single * from tbdlst where
+         logsys = i_logsys and
+         langu = sy-langu.
+  if sy-subrc &lt;&gt; 0.
+    clear tbdlst.
+  endif.
+*  g_1800_logsys_text = tbdlst-stext.
+*  concatenate g_1800_logsys_text &apos;(&apos; i_logsys &apos;)&apos; into
+*              g_1800_logsys_text separated by space.
+  select single * from tbdlst where
+         logsys = l_rlogsys and
+         langu = sy-langu.
+  if sy-subrc &lt;&gt; 0.
+    clear tbdlst.
+  endif.
+*  g_1800_bwlogsys_text = tbdlst-stext.
+*  concatenate g_1800_bwlogsys_text &apos;(&apos; l_rlogsys &apos;)&apos; into
+*              g_1800_bwlogsys_text separated by space.
+
+*  concatenate l_bwsource_text &apos;(&apos; l_bwsource &apos;)&apos; into
+*              g_1800_bwsource_text separated by space.
+*  g_1800_bwsource = l_bwsource.
+
+  if cl_rsar_srctype=&gt;sapsystem( l_s_rsbasidoc-srctype ) = rs_c_false.
+    l_s_roidocprms-maxprocs = 1.
+    if l_s_rsbasidoc-srctype = &apos;G&apos; or
+       l_s_rsbasidoc-srctype = &apos;S&apos;.
+      call function &apos;RSCC_RSADM_ACC&apos;
+        exporting
+          fieldname  = &apos;DBC_PACKSIZE&apos;
+          action     = rs_c_actionadm-sel
+        changing
+          adminvalue = l_s_roidocprms-maxsize
+        exceptions
+          others     = 9.
+      if l_s_roidocprms-maxsize is initial.
+        l_s_roidocprms-maxsize = 1000.
+        call function &apos;RSCC_RSADM_ACC&apos;
+          exporting
+            fieldname  = &apos;DBC_PACKSIZE&apos;
+            action     = rs_c_actionadm-upd
+          changing
+            adminvalue = l_s_roidocprms-maxsize
+          exceptions
+            others     = 9.
+      endif.
+    else.
+      call function &apos;RSCC_RSADM_ACC&apos;
+        exporting
+          fieldname  = rs_c_rsadmin-idocpacksize
+          action     = rs_c_actionadm-sel
+        changing
+          adminvalue = l_s_roidocprms-maxsize
+        exceptions
+          others     = 9.
+      if l_s_roidocprms-maxsize is initial.
+        l_s_roidocprms-maxsize = 1000.
+        call function &apos;RSCC_RSADM_ACC&apos;
+          exporting
+            fieldname  = rs_c_rsadmin-idocpacksize
+            action     = rs_c_actionadm-upd
+          changing
+            adminvalue = l_s_roidocprms-maxsize
+          exceptions
+            others     = 9.
+      endif.
+    endif.
+
+    call function &apos;RSCC_RSADM_ACC&apos;
+      exporting
+        fieldname  = rs_c_rsadmin-infoidocfrq
+        action     = rs_c_actionadm-sel
+      changing
+        adminvalue = l_s_roidocprms-statfrqu
+      exceptions
+        others     = 9.
+    if l_s_roidocprms-statfrqu is initial.
+      l_s_roidocprms-statfrqu = 1.
+      call function &apos;RSCC_RSADM_ACC&apos;
+        exporting
+          fieldname  = rs_c_rsadmin-infoidocfrq
+          action     = rs_c_actionadm-upd
+        changing
+          adminvalue = l_s_roidocprms-statfrqu
+        exceptions
+          others     = 9.
+    endif.
+  endif.
+
+  if l_s_roidocprms-maxsize is initial.
+    l_s_roidocprms-maxsize = 20000.
+  endif.
+  if l_s_roidocprms-maxprocs is initial.
+    l_s_roidocprms-maxprocs = 2.
+  endif.
+  if l_s_roidocprms-statfrqu is initial.
+    l_s_roidocprms-statfrqu = 10.
+  endif.
+*  clear g_message_done.
+
+
+&quot;&gt;&gt; Change l_t_1800
+if i_readonly &lt;&gt; &apos;X&apos;.
+loop at l_t_1800 ASSIGNING &lt;s_1800&gt;.
+  &lt;s_1800&gt;-maxsize = I_PACKSIZE_FORCE2.
+  endloop.
+  endif.
+
+*  if g_subrc &lt;&gt; 0.
+*    message s513.
+*    exit.
+*  endif.
+  loop at l_t_oltp.
+    refresh l_t_roosprms.
+    loop at l_t_1800 where
+         oltpsource = l_t_oltp-oltpsource.
+      clear l_t_roosprms.
+      l_t_roosprms-oltpsource = l_t_oltp-oltpsource.
+      l_t_roosprms-rlogsys    = l_rlogsys.
+      l_t_roosprms-srlogsys   = i_logsys.
+      l_t_roosprms-updmode    = l_t_1800-updmode.
+      l_t_roosprms-maxsize    = l_t_1800-maxsize.
+      l_t_roosprms-statfrqu   = l_t_1800-statfrqu.
+      l_t_roosprms-maxprocs   = l_t_1800-maxprocs.
+      l_t_roosprms-maxdpaks   = l_t_1800-maxdpaks.
+      append l_t_roosprms.
+    endloop.
+    delete l_t_roosprms where
+           maxsize  is initial and
+           statfrqu is initial and
+           maxprocs is initial and
+           maxdpaks is initial.
+    if l_dest = &apos;NONE&apos;.
+      delete from roosprms where
+             oltpsource = l_t_oltp-oltpsource and
+             rlogsys    = l_rlogsys and
+             srlogsys   = i_logsys.
+      if l_t_roosprms[] is initial.
+        continue.
+      else.
+        call function &apos;RSSM_OLTPSOURCE_SELECTIONS&apos;
+          exporting
+            i_oltpsource = l_t_oltp-oltpsource
+            i_rlogsys    = l_rlogsys
+            i_dest       = l_dest
+            i_logsys     = i_logsys
+          tables
+            e_t_roosprms = l_t_roosprms.
+      endif.
+    else.
+      if l_t_roosprms[] is initial.
+        clear l_t_roosprms.
+        append l_t_roosprms.
+      endif.
+      call function &apos;RSSM_OLTPSOURCE_SELECTIONS&apos;
+        exporting
+          i_oltpsource = l_t_oltp-oltpsource
+          i_rlogsys    = l_rlogsys
+          i_dest       = l_dest
+          i_logsys     = i_logsys
+        tables
+          e_t_roosprms = l_t_roosprms.
+    endif.
+  endloop.
+  message s240(rsm1) with i_logsys.
+
+
+&quot;Fill output table
+loop at l_t_1800.
+  t_roosprms-oltpsource = l_t_1800-oltpsource.
+  t_roosprms-rlogsys = l_t_1800-rlogsys.
+  t_roosprms-srlogsys = l_t_1800-srlogsys.
+  t_roosprms-updmode = l_t_1800-updmode.
+  t_roosprms-maxsize = l_t_1800-maxsize.
+  t_roosprms-statfrqu = l_t_1800-statfrqu.
+  t_roosprms-maxprocs  = l_t_1800-maxprocs.
+  t_roosprms-maxdpaks  = l_t_1800-maxdpaks.
+  append t_roosprms.
+endloop.</fm_source>
+    <functionModuleDocumentation/>
+   </functionmodule>
+  </functionmodules>
+ </FUGR>
+ <PROG NAME="ZBW_SET_ROOSPRMS_IN_SRC" VARCL="X" SUBC="1" CNAM="EXC060" CDAT="20130910" UNAM="EXC060" UDAT="20130910" VERN="000010" RMAND="001" RLOAD="E" FIXPT="X" SDATE="20130910" STIME="144159" IDATE="20130910" ITIME="144159" UCCHECK="X">
+  <textPool>
+   <language SPRAS="E">
+    <textElement ID="R" ENTRY="ZBW_SET_ROOSPRMS_IN_SRC" LENGTH="23 "/>
+   </language>
+  </textPool>
+  <source>*&amp;---------------------------------------------------------------------*
+*&amp; Report  ZBW_SET_ROOSPRMS_IN_SRC
+*&amp;
+*&amp;---------------------------------------------------------------------*
+*&amp;
+*&amp;
+*&amp;---------------------------------------------------------------------*
+
+REPORT  zbw_set_roosprms_in_src.
+
+data: lt_roosprms type table of roosprms WITH HEADER LINE.
+
+DATA: lt_rsisosmap TYPE TABLE OF rsisosmap.
+DATA: ls_rsisosmap TYPE rsisosmap.
+
+DATA: l_oltpsource TYPE rsoltpsourcer.
+
+SELECT-OPTIONS s_oltps FOR l_oltpsource.
+PARAMETERS p_srcsys TYPE tbdls-logsys.
+parameters p_maxsiz type RSIDOCSIZE.
+PARAMETERS p_rdonly type flag as CHECKBOX DEFAULT &apos;X&apos;.
+
+SELECT * FROM rsisosmap
+  INTO TABLE lt_rsisosmap
+  WHERE oltpsource in s_oltps
+    AND logsys = p_srcsys
+    AND objvers = &apos;A&apos;.
+
+LOOP AT lt_rsisosmap INTO ls_rsisosmap.
+  refresh lt_roosprms.
+CALL FUNCTION &apos;ZBW_SET_ROOSPRMS_IN_SRC&apos;
+  EXPORTING
+    i_logsys                 = p_srcsys
+    i_oltpsource             = ls_rsisosmap-oltpsource
+    i_packsize_force2        = p_maxsiz
+    I_READONLY               = p_rdonly
+  TABLES
+    t_roosprms               = lt_roosprms.
+
+loop at lt_roosprms.
+  NEW-LINE.
+  write: &apos;|&apos;, lt_roosprms-oltpsource.
+*  write: &apos;|&apos;, lt_roosprms-rlogsys.
+*  write: &apos;|&apos;, lt_roosprms-srlogsys.
+  write: &apos;|&apos;, lt_roosprms-updmode.
+  write: &apos;|&apos;, lt_roosprms-maxsize.
+*  write: &apos;|&apos;, lt_roosprms-statfrqu.
+*  write: &apos;|&apos;, lt_roosprms-maxprocs.
+*  write: &apos;|&apos;, lt_roosprms-maxdpaks.
+
+  endloop.
+ENDLOOP.</source>
+ </PROG>
+</nugget>
