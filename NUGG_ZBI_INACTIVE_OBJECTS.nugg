@@ -1,8 +1,186 @@
 <?xml version="1.0" encoding="utf-16"?>
 <nugget name="ZBI_INACTIVE_OBJECTS">
+ <TTYP TYPENAME="ZBI_INACTIVE_OBJ_T" DDLANGUAGE="E" ROWTYPE="ZBI_INACTIVE_OBJ" ROWKIND="S" DATATYPE="STRU" LENG="000000" DECIMALS="000000" ACCESSMODE="T" KEYDEF="D" KEYKIND="N" KEYFDCOUNT="0000" AS4USER="EXC060" AS4DATE="20131114" AS4TIME="111256" DDTEXT="ZBI_INACTIVE_OBJ_T" TYPELEN="000666" CTLENG="000000" CTDECIMALS="000000" OCCURS="00000"/>
+ <TABL TABNAME="ZBI_INACTIVE_OBJ" DDLANGUAGE="E" TABCLASS="TRANSP" DATMIN="0000000000" DATMAX="0000000000" DATAVG="0000000000" DDTEXT="ZBI_INACTIVE_OBJects" AUTHCLASS="00" AS4USER="EXC060" AS4DATE="20131114" AS4TIME="105219" CONTFLAG="A" PROZPUFF="000" EXCLASS="1">
+  <dd09l TABNAME="ZBI_INACTIVE_OBJ" AS4LOCAL="A" AS4VERS="0000" TABKAT="3" TABART="APPL0" SCHFELDANZ="000" AS4USER="EXC060" AS4DATE="20131114" AS4TIME="105219" BUFALLOW="N"/>
+  <dd03p TABNAME="ZBI_INACTIVE_OBJ" FIELDNAME="DATE_EXEC" DDLANGUAGE="E" POSITION="0001" KEYFLAG="X" ROLLNAME="DATS" ADMINFIELD="0" INTTYPE="D" INTLEN="000016" NOTNULL="X" DOMNAME="DATS" ROUTPUTLEN="000000" HEADLEN="30" SCRLEN1="10" SCRLEN2="10" SCRLEN3="40" DTELMASTER="D" DATATYPE="DATS" LENG="000008" OUTPUTLEN="000010" DECIMALS="000000" MASK="  DATSE" MASKLEN="0000" DDTEXT="Field of type DATS" REPTEXT="Date in Format YYYYMMDD" SCRTEXT_S="Date" SCRTEXT_M="Date" SCRTEXT_L="Date in Format YYYYMMSS in 8 Characters" DOMMASTER="D" DOMNAME3L="DATS" SHLPORIGIN="T" DEPTH="00" COMPTYPE="E" EXCLASS="0" DBPOSITION="0000" OUTPUTSTYLE="00" STRORLOCPOS="00"/>
+  <dd03p TABNAME="ZBI_INACTIVE_OBJ" FIELDNAME="TIME_EXEC" DDLANGUAGE="E" POSITION="0002" KEYFLAG="X" ROLLNAME="UTIME" ADMINFIELD="0" INTTYPE="T" INTLEN="000012" NOTNULL="X" DOMNAME="UZEIT" ROUTPUTLEN="000000" HEADLEN="00" SCRLEN1="00" SCRLEN2="11" SCRLEN3="20" DTELMASTER="D" DATATYPE="TIMS" LENG="000006" OUTPUTLEN="000008" DECIMALS="000000" MASK="  TIMSE" MASKLEN="0000" DDTEXT="Time of Last Change" SCRTEXT_M="Changed at" SCRTEXT_L="Changed at" DOMNAME3L="UZEIT" SHLPORIGIN="T" DEPTH="00" COMPTYPE="E" EXCLASS="0" DBPOSITION="0000" OUTPUTSTYLE="00" STRORLOCPOS="00"/>
+  <dd03p TABNAME="ZBI_INACTIVE_OBJ" FIELDNAME="TYPE" DDLANGUAGE="E" POSITION="0003" KEYFLAG="X" ROLLNAME="TROBJTYPE" ADMINFIELD="0" INTTYPE="C" INTLEN="000008" NOTNULL="X" DOMNAME="OBJECT" ROUTPUTLEN="000000" HEADLEN="04" SCRLEN1="10" SCRLEN2="15" SCRLEN3="20" DTELMASTER="D" DATATYPE="CHAR" LENG="000004" OUTPUTLEN="000004" DECIMALS="000000" MASK="  CHARE" MASKLEN="0000" DDTEXT="Object Type" REPTEXT="Obj." SCRTEXT_S="Obj. Type" SCRTEXT_M="Object Type" SCRTEXT_L="Object Type" DOMNAME3L="OBJECT" SHLPORIGIN="D" SHLPNAME="SCTSOBJECT" SHLPFIELD="OBJECT" DEPTH="00" COMPTYPE="E" EXCLASS="0" DBPOSITION="0000" OUTPUTSTYLE="00" STRORLOCPOS="00"/>
+  <dd03p TABNAME="ZBI_INACTIVE_OBJ" FIELDNAME="ID" DDLANGUAGE="E" POSITION="0004" KEYFLAG="X" ROLLNAME="RSDAS_VALUE" ADMINFIELD="0" INTTYPE="C" INTLEN="000120" NOTNULL="X" DOMNAME="RSDAS_VALUE" ROUTPUTLEN="000000" HEADLEN="15" SCRLEN1="10" SCRLEN2="15" SCRLEN3="15" DTELMASTER="D" DATATYPE="CHAR" LENG="000060" OUTPUTLEN="000060" DECIMALS="000000" LOWERCASE="X" MASK="  CHARE" MASKLEN="0000" DDTEXT="Parameter Value" REPTEXT="Parameter Value" SCRTEXT_S="Value" SCRTEXT_M="Parameter Value" SCRTEXT_L="Parameter Value" DOMNAME3L="RSDAS_VALUE" DEPTH="00" COMPTYPE="E" EXCLASS="0" DBPOSITION="0000" OUTPUTSTYLE="00" STRORLOCPOS="00"/>
+  <dd03p TABNAME="ZBI_INACTIVE_OBJ" FIELDNAME="DESCRIPTION" DDLANGUAGE="E" POSITION="0005" ROLLNAME="RSTXT255" ADMINFIELD="0" INTTYPE="C" INTLEN="000510" DOMNAME="TEXT255" ROUTPUTLEN="000000" HEADLEN="55" SCRLEN1="10" SCRLEN2="15" SCRLEN3="20" DTELMASTER="E" DATATYPE="CHAR" LENG="000255" OUTPUTLEN="000255" DECIMALS="000000" LOWERCASE="X" MASK="  CHARE" MASKLEN="0000" DDTEXT="Descriptive Text, 255 Characters long" REPTEXT="Description" SCRTEXT_S="Text" SCRTEXT_M="Description" SCRTEXT_L="Description" DOMNAME3L="TEXT255" DEPTH="00" COMPTYPE="E" EXCLASS="0" DBPOSITION="0000" OUTPUTSTYLE="00" STRORLOCPOS="00"/>
+ </TABL>
+ <PROG NAME="ZBI_INACTIVE_OBJECTS" VARCL="X" SUBC="1" CNAM="EXC060" CDAT="20131114" UNAM="EXC060" UDAT="20140108" VERN="000049" RMAND="001" RLOAD="E" FIXPT="X" SDATE="20140108" STIME="111412" IDATE="20140108" ITIME="111412" UCCHECK="X">
+  <textPool>
+   <language SPRAS="E">
+    <textElement ID="I" KEY="002" ENTRY="All" LENGTH="3 "/>
+    <textElement ID="R" ENTRY="Inactive objects checker" LENGTH="24 "/>
+    <textElement ID="S" KEY="R1" ENTRY="        Get Snapshot" LENGTH="21 "/>
+    <textElement ID="S" KEY="R2" ENTRY="        Make Snapshot" LENGTH="33 "/>
+    <textElement ID="S" KEY="R3" ENTRY="        Diff last 2 snapshots" LENGTH="29 "/>
+    <textElement ID="S" KEY="R4" ENTRY="        Delete recorded snapshots" LENGTH="33 "/>
+   </language>
+  </textPool>
+  <source>*&amp;---------------------------------------------------------------------*
+*&amp; Report  Z_IOC
+*&amp;
+*&amp;---------------------------------------------------------------------*
+*&amp;
+*&amp;
+*&amp;---------------------------------------------------------------------*
+
+REPORT z_inactive_objects LINE-SIZE 400.
+DATA: gt_data TYPE zbi_inactive_obj_t.
+DATA: gt_data_activated TYPE zbi_inactive_obj_t.
+DATA: gt_data_deactivated TYPE zbi_inactive_obj_t.
+DATA: ls_data TYPE zbi_inactive_obj.
+DATA: checkbox_mark TYPE xfeld.
+*SELECTION-SCREEN BEGIN OF BLOCK b1 WITH FRAME TITLE text-001.
+*SELECTION-SCREEN BEGIN OF LINE.
+*PARAMETERS: x_call AS CHECKBOX USER-COMMAND com1.
+*SELECTION-SCREEN COMMENT (25) text-002 FOR FIELD x_call.
+*SELECTION-SCREEN END OF LINE.
+*SELECTION-SCREEN SKIP.
+*PARAMETERS: x_c1 AS CHECKBOX USER-COMMAND com2, &quot; MultiProvider
+*x_c2 AS CHECKBOX USER-COMMAND com2, &quot; Cube
+*x_c3 AS CHECKBOX USER-COMMAND com2, &quot; DSO
+*x_c4 AS CHECKBOX USER-COMMAND com2, &quot; InfoObject
+*x_c5 AS CHECKBOX USER-COMMAND com2, &quot; Transformation
+*x_c6 AS CHECKBOX USER-COMMAND com2, &quot; DTP
+*x_c7 AS CHECKBOX USER-COMMAND com2, &quot; Processchain
+*x_c8 AS CHECKBOX USER-COMMAND com2, &quot; Aggregation Level
+*x_c9 AS CHECKBOX USER-COMMAND com2, &quot; DataSource
+*x_c10 AS CHECKBOX USER-COMMAND com2, &quot; Transfer rule
+*x_c11 AS CHECKBOX USER-COMMAND com2. &quot; Update rule
+*
+*
+*SELECTION-SCREEN END OF BLOCK b1.
+SELECTION-SCREEN BEGIN OF BLOCK b2 WITH FRAME TITLE text-002.
+PARAMETERS: r1 RADIOBUTTON GROUP rbg1 DEFAULT &apos;X&apos;,  &quot; Get last snapshot
+            r2 RADIOBUTTON GROUP rbg1,              &quot; Make new snapshot
+            r3 RADIOBUTTON GROUP rbg1,              &quot; Diff last 2 snapshots
+            r4 RADIOBUTTON GROUP rbg1.
+
+SELECTION-SCREEN END OF BLOCK b2.
+SELECTION-SCREEN SKIP 2.
+SELECTION-SCREEN COMMENT /1(80) comm1.
+SELECTION-SCREEN ULINE.
+SELECTION-SCREEN COMMENT /1(80) comm2.
+SELECTION-SCREEN COMMENT /1(80) comm3.
+SELECTION-SCREEN COMMENT /1(80) comm4.
+SELECTION-SCREEN COMMENT /1(80) comm5.
+SELECTION-SCREEN COMMENT /1(80) comm6.
+SELECTION-SCREEN COMMENT /1(80) comm7.
+SELECTION-SCREEN COMMENT /1(80) comm8.
+SELECTION-SCREEN COMMENT /1(80) comm9.
+SELECTION-SCREEN COMMENT /1(80) comm10.
+SELECTION-SCREEN COMMENT /1(80) comm11.
+SELECTION-SCREEN COMMENT /1(80) comm12.
+
+INITIALIZATION.
+  comm1 = &apos;Inactive object determination logic&apos;.
+  comm2 = &apos;CUBE: Table RSDCUBE - OBJSTAT=&apos;&apos;INA&apos;&apos;, CUBETYPE &lt;&gt; &apos;&apos;M&apos;&apos;, OBJVERS = &apos;&apos;A&apos;&apos;&apos;.
+  comm3 = &apos;MPRO: Table RSDCUBE - OBJSTAT=&apos;&apos;INA&apos;&apos;, CUBETYPE = &apos;&apos;M&apos;&apos;, OBJVERS = &apos;&apos;A&apos;&apos;&apos;.
+  comm4 = &apos;ALVL: Table RSPLS_ALVL - OBJSTAT=&apos;&apos;INA&apos;&apos;, OBJVERS = &apos;&apos;A&apos;&apos;&apos;.
+  comm5 = &apos;ODSO: Table RSDODSO - OBJVERS = &apos;&apos;A&apos;&apos; - join - RSDODSOLOC - OBJSTAT=&apos;&apos;INA&apos;&apos;&apos; .
+  comm6 = &apos;DTP: Table RSBKDTP - OBJVERS = &apos;&apos;A&apos;&apos; - then cl_rsbk_dtp is_active property&apos; .
+  comm7 = &apos;PC: Table RSPCCHAIN - TYPE = &apos;&apos;TRIGGER&apos;&apos; - chains where OBJVERS = &apos;&apos;A&apos;&apos; is missing&apos; .
+  comm8 = &apos;PC2: Table RSPCCHAIN - TYPE = &apos;&apos;TRIGGER&apos;&apos; - timestmp OBJVERS = &apos;&apos;M&apos;&apos; &gt; OBJVERS = &apos;&apos;A&apos;&apos;&apos; .
+  comm9 = &apos;RSDS: Table RSDS - OBJSTAT=&apos;&apos;INA&apos;&apos;, OBJVERS = &apos;&apos;M&apos;&apos;&apos;.
+  comm10 = &apos;RSTS: Table RSTS - OBJSTAT=&apos;&apos;INA&apos;&apos;, OBJVERS = &apos;&apos;A&apos;&apos;&apos;.
+  comm11 = &apos;TRFN: Table RSTRAN - OBJSTAT=&apos;&apos;INA&apos;&apos;, OBJVERS = &apos;&apos;A&apos;&apos;&apos;.
+  comm12 = &apos;UPDR: Table RSUPDINFO - OBJSTAT=&apos;&apos;INA&apos;&apos;, OBJVERS = &apos;&apos;A&apos;&apos;&apos;.
+  DATA: l_lines TYPE i.
+*AT SELECTION-SCREEN ON x_call.
+*PERFORM at_call.
+*AT SELECTION-SCREEN OUTPUT.
+*PERFORM at_sel_scr_output.
+START-OF-SELECTION.
+  IF r1 = &apos;X&apos;.
+    CALL FUNCTION &apos;ZBI_INACT_OBJ_SNAPSHOT_GET&apos;
+      EXPORTING
+        i_date        = sy-datum
+        i_time        = sy-uzeit
+      CHANGING
+        ct_data       = gt_data
+      EXCEPTIONS
+        no_data_found = 1
+        OTHERS        = 2.
+    IF sy-subrc &lt;&gt; 0.
+      MESSAGE &apos;No stored snapshots&apos; TYPE &apos;I&apos;.
+    ELSE.
+
+      LOOP AT gt_data INTO ls_data.
+        WRITE: ls_data-type, ls_data-id.
+        NEW-LINE.
+*      WRITE: ls_data-type, ls_data-id, ls_data-description.
+      ENDLOOP.
+    ENDIF.
+  ENDIF.
+
+  IF r2 = &apos;X&apos;.
+    CALL FUNCTION &apos;ZBI_INACT_OBJ_SNAPSHOT_CREATE&apos;
+      EXPORTING
+        i_date  = sy-datum
+        i_time  = sy-uzeit
+        i_save  = &apos;X&apos;
+      CHANGING
+        ct_data = gt_data.
+
+    LOOP AT gt_data INTO ls_data.
+      WRITE: ls_data-type, ls_data-id, ls_data-description.
+      NEW-LINE.
+    ENDLOOP.
+  ENDIF.
+
+  IF r3 = &apos;X&apos;.
+
+    CALL FUNCTION &apos;ZBI_INACT_OBJ_SNAPSHOT_DIFF&apos;
+      CHANGING
+        ct_data_activated   = gt_data_activated
+        ct_data_deactivated = gt_data_deactivated
+      EXCEPTIONS
+        NO_DATA_AFTER             = 1
+        NO_DATA_BEFORE            = 2
+        OTHERS                    = 3.
+
+    IF sy-subrc &lt;&gt; 0.
+      MESSAGE &apos;No stored snapshots&apos; TYPE &apos;I&apos;.
+    ELSE.
+
+    IF gt_data_activated IS INITIAL.
+      WRITE &apos;No activations&apos;.
+      NEW-LINE.
+    ELSE.
+      WRITE &apos;Activations or Creations&apos;.
+      NEW-LINE.
+      LOOP AT gt_data_activated INTO ls_data.
+        WRITE: ls_data-type, ls_data-id, ls_data-description.
+        NEW-LINE.
+*      WRITE: ls_data-type, ls_data-id, ls_data-description.
+      ENDLOOP.
+    ENDIF.
+    IF gt_data_deactivated IS INITIAL.
+      WRITE &apos;No deactivations&apos;.
+      NEW-LINE.
+    ELSE.
+      WRITE &apos;Deactivations&apos;.
+      NEW-LINE.
+      LOOP AT gt_data_deactivated INTO ls_data.
+        WRITE: ls_data-type, ls_data-id, ls_data-description.
+        NEW-LINE.
+*      WRITE: ls_data-type, ls_data-id, ls_data-description.
+      ENDLOOP.
+    ENDIF.
+    ENDIF.
+  ENDIF.
+
+  IF r4 = &apos;X&apos;.
+    CALL FUNCTION &apos;ZBI_INACT_OBJ_SNAPSHOT_RESET&apos;.
+  ENDIF.</source>
+ </PROG>
  <FUGR AREA="ZBI_INACTIVE_OBJECTS" SPRAS="E" AREAT="ZBI_INACTIVE_OBJECTS">
   <functionGroupDocumentation/>
-  <mainprogram NAME="SAPLZBI_INACTIVE_OBJECTS" VARCL="X" DBAPL="S" DBNA="D$" SUBC="F" APPL="S" CNAM="EXC060" CDAT="20131114" UNAM="EXC060" UDAT="20131114" VERN="000002" RMAND="001" RLOAD="E" FIXPT="X" SDATE="20131125" STIME="104036" IDATE="20131114" ITIME="105611" LDBNAME="D$S" UCCHECK="X">
+  <mainprogram NAME="SAPLZBI_INACTIVE_OBJECTS" VARCL="X" DBAPL="S" DBNA="D$" SUBC="F" APPL="S" CNAM="EXC060" CDAT="20131114" UNAM="EXC060" UDAT="20131114" VERN="000002" RMAND="001" RLOAD="E" FIXPT="X" SDATE="20140108" STIME="110512" IDATE="20131114" ITIME="105611" LDBNAME="D$S" UCCHECK="X">
    <textPool/>
    <source>*******************************************************************
 *   System-defined Include-files.                                 *
@@ -382,8 +560,8 @@ DATA:
    <functionmodule NAME="ZBI_INACT_OBJ_PC_GET" STEXT="ZBI_INACT_OBJ_SNAPSHOT_CREATE">
     <changing PARAMETER="CT_DATA" REFERENCE="X" TYP="ZBI_INACTIVE_OBJ_T"/>
     <documentation PARAMETER="CT_DATA" KIND="P" STEXT="ZBI_INACTIVE_OBJ_T" INDEX=" 001"/>
-    <fm_source_new>* Only objects wiht an A version ara checked. =&gt; If an object has never been activated it is not
-* included in the list. This concerns only objects &apos;in development&apos;
+    <fm_source_new>* Find process chains that do not have a A version for the trigger process
+* type which is mandatory in all PCs.
   DATA:
         ls_chain TYPE rspcchain,
         lt_chain TYPE TABLE OF rspcchain,
@@ -578,12 +756,16 @@ ENDSELECT.</fm_source_new>
     <importing PARAMETER="I_TIME_BEFORE" OPTIONAL="X" REFERENCE="X" TYP="TIMS"/>
     <changing PARAMETER="CT_DATA_ACTIVATED" REFERENCE="X" TYP="ZBI_INACTIVE_OBJ_T"/>
     <changing PARAMETER="CT_DATA_DEACTIVATED" REFERENCE="X" TYP="ZBI_INACTIVE_OBJ_T"/>
+    <exceptions EXCEPTION="NO_DATA_AFTER"/>
+    <exceptions EXCEPTION="NO_DATA_BEFORE"/>
     <documentation PARAMETER="I_DATE_AFTER" KIND="P" STEXT="Field of type DATS" INDEX=" 001"/>
     <documentation PARAMETER="I_TIME_AFTER" KIND="P" STEXT="Field of type TIMS" INDEX=" 002"/>
     <documentation PARAMETER="I_DATE_BEFORE" KIND="P" STEXT="Field of type DATS" INDEX=" 003"/>
     <documentation PARAMETER="I_TIME_BEFORE" KIND="P" STEXT="Field of type TIMS" INDEX=" 004"/>
     <documentation PARAMETER="CT_DATA_ACTIVATED" KIND="P" STEXT="ZBI_INACTIVE_OBJ_T" INDEX=" 005"/>
     <documentation PARAMETER="CT_DATA_DEACTIVATED" KIND="P" STEXT="ZBI_INACTIVE_OBJ_T" INDEX=" 006"/>
+    <documentation PARAMETER="NO_DATA_AFTER" KIND="X" INDEX=" 007"/>
+    <documentation PARAMETER="NO_DATA_BEFORE" KIND="X" INDEX=" 008"/>
     <fm_source_new>FIELD-SYMBOLS: &lt;s_data&gt; TYPE zbi_inactive_obj.
 
   DATA:
@@ -668,145 +850,11 @@ ENDSELECT.</fm_source_new>
 &quot; List of deactivations in diff
   ct_data_deactivated = lt_data_after.
   APPEND LINES OF lt_data_before TO ct_data_deactivated.
-  SORT ct_data_activated BY type id date_exec time_exec.
-  DELETE ADJACENT DUPLICATES FROM ct_data_activated COMPARING type id.
-  DELETE ct_data_activated WHERE date_exec = l_date_snapshot_before AND time_exec = l_time_snapshot_before.</fm_source_new>
+  SORT ct_data_deactivated BY type id date_exec time_exec.
+  DELETE ADJACENT DUPLICATES FROM ct_data_deactivated COMPARING type id.
+  DELETE ct_data_deactivated WHERE date_exec = l_date_snapshot_before AND time_exec = l_time_snapshot_before.</fm_source_new>
     <functionModuleDocumentation/>
    </functionmodule>
   </functionmodules>
  </FUGR>
- <PROG NAME="ZBI_INACTIVE_OBJECTS" VARCL="X" SUBC="1" CNAM="EXC060" CDAT="20131114" UNAM="EXC060" UDAT="20131125" VERN="000028" RMAND="001" RLOAD="E" FIXPT="X" SDATE="20131125" STIME="142917" IDATE="20131125" ITIME="142917" UCCHECK="X">
-  <textPool>
-   <language SPRAS="E">
-    <textElement ID="I" KEY="002" ENTRY="All" LENGTH="3 "/>
-    <textElement ID="R" ENTRY="Inactive objects checker" LENGTH="24 "/>
-    <textElement ID="S" KEY="R1" ENTRY="        Get Snapshot" LENGTH="21 "/>
-    <textElement ID="S" KEY="R2" ENTRY="        Make Snapshot" LENGTH="33 "/>
-    <textElement ID="S" KEY="R3" ENTRY="        Diff last 2 snapshots" LENGTH="29 "/>
-    <textElement ID="S" KEY="R4" ENTRY="        Delete recorded snapshots" LENGTH="33 "/>
-   </language>
-  </textPool>
-  <source>*&amp;---------------------------------------------------------------------*
-*&amp; Report  Z_IOC
-*&amp;
-*&amp;---------------------------------------------------------------------*
-*&amp;
-*&amp;
-*&amp;---------------------------------------------------------------------*
-
-REPORT z_inactive_objects LINE-SIZE 400.
-DATA: gt_data TYPE zbi_inactive_obj_t.
-DATA: gt_data_activated TYPE zbi_inactive_obj_t.
-DATA: gt_data_deactivated TYPE zbi_inactive_obj_t.
-DATA: ls_data TYPE zbi_inactive_obj.
-DATA: checkbox_mark TYPE xfeld.
-*SELECTION-SCREEN BEGIN OF BLOCK b1 WITH FRAME TITLE text-001.
-*SELECTION-SCREEN BEGIN OF LINE.
-*PARAMETERS: x_call AS CHECKBOX USER-COMMAND com1.
-*SELECTION-SCREEN COMMENT (25) text-002 FOR FIELD x_call.
-*SELECTION-SCREEN END OF LINE.
-*SELECTION-SCREEN SKIP.
-*PARAMETERS: x_c1 AS CHECKBOX USER-COMMAND com2, &quot; MultiProvider
-*x_c2 AS CHECKBOX USER-COMMAND com2, &quot; Cube
-*x_c3 AS CHECKBOX USER-COMMAND com2, &quot; DSO
-*x_c4 AS CHECKBOX USER-COMMAND com2, &quot; InfoObject
-*x_c5 AS CHECKBOX USER-COMMAND com2, &quot; Transformation
-*x_c6 AS CHECKBOX USER-COMMAND com2, &quot; DTP
-*x_c7 AS CHECKBOX USER-COMMAND com2, &quot; Processchain
-*x_c8 AS CHECKBOX USER-COMMAND com2, &quot; Aggregation Level
-*x_c9 AS CHECKBOX USER-COMMAND com2, &quot; DataSource
-*x_c10 AS CHECKBOX USER-COMMAND com2, &quot; Transfer rule
-*x_c11 AS CHECKBOX USER-COMMAND com2. &quot; Update rule
-*
-*
-*SELECTION-SCREEN END OF BLOCK b1.
-SELECTION-SCREEN BEGIN OF BLOCK b2 WITH FRAME TITLE text-002.
-PARAMETERS: r1 RADIOBUTTON GROUP rbg1 DEFAULT &apos;X&apos;,  &quot; Get last snapshot
-            r2 RADIOBUTTON GROUP rbg1,              &quot; Make new snapshot
-            r3 RADIOBUTTON GROUP rbg1,              &quot; Diff last 2 snapshots
-            r4 RADIOBUTTON GROUP rbg1.
-
-SELECTION-SCREEN END OF BLOCK b2.
-DATA: l_lines TYPE i.
-*AT SELECTION-SCREEN ON x_call.
-*PERFORM at_call.
-*AT SELECTION-SCREEN OUTPUT.
-*PERFORM at_sel_scr_output.
-START-OF-SELECTION.
-  IF r1 = &apos;X&apos;.
-    CALL FUNCTION &apos;ZBI_INACT_OBJ_SNAPSHOT_GET&apos;
-      EXPORTING
-        i_date  = sy-datum
-        i_time  = sy-uzeit
-      CHANGING
-        ct_data = gt_data.
-
-    LOOP AT gt_data INTO ls_data.
-      WRITE: ls_data-type, ls_data-id.
-      NEW-LINE.
-*      WRITE: ls_data-type, ls_data-id, ls_data-description.
-    ENDLOOP.
-  ENDIF.
-
-  IF r2 = &apos;X&apos;.
-    CALL FUNCTION &apos;ZBI_INACT_OBJ_SNAPSHOT_CREATE&apos;
-      EXPORTING
-        i_date  = sy-datum
-        i_time  = sy-uzeit
-        i_save  = &apos;X&apos;
-      CHANGING
-        ct_data = gt_data.
-
-    LOOP AT gt_data INTO ls_data.
-      WRITE: ls_data-type, ls_data-id.
-      NEW-LINE.
-    ENDLOOP.
-  ENDIF.
-
-  IF r3 = &apos;X&apos;.
-
-    CALL FUNCTION &apos;ZBI_INACT_OBJ_SNAPSHOT_DIFF&apos;
-      CHANGING
-        ct_data_activated = gt_data_activated
-        ct_data_deactivated = gt_data_deactivated.
-
-    IF gt_data_activated IS INITIAL.
-      WRITE &apos;No activations&apos;.
-      NEW-LINE.
-    ELSE.
-      WRITE &apos;Activations or Creations&apos;.
-      NEW-LINE.
-      LOOP AT gt_data_activated INTO ls_data.
-        WRITE: ls_data-type, ls_data-id.
-        NEW-LINE.
-*      WRITE: ls_data-type, ls_data-id, ls_data-description.
-      ENDLOOP.
-    ENDIF.
-    IF gt_data_activated IS INITIAL.
-      WRITE &apos;No deactivations&apos;.
-      NEW-LINE.
-    ELSE.
-      WRITE &apos;Deactivations&apos;.
-      NEW-LINE.
-      LOOP AT gt_data_deactivated INTO ls_data.
-        WRITE: ls_data-type, ls_data-id.
-        NEW-LINE.
-*      WRITE: ls_data-type, ls_data-id, ls_data-description.
-      ENDLOOP.
-    ENDIF.
-  ENDIF.
-
-  IF r4 = &apos;X&apos;.
-    CALL FUNCTION &apos;ZBI_INACT_OBJ_SNAPSHOT_RESET&apos;.
-  ENDIF.</source>
- </PROG>
- <TABL TABNAME="ZBI_INACTIVE_OBJ" DDLANGUAGE="E" TABCLASS="TRANSP" DATMIN="0000000000" DATMAX="0000000000" DATAVG="0000000000" DDTEXT="ZBI_INACTIVE_OBJects" AUTHCLASS="00" AS4USER="EXC060" AS4DATE="20131114" AS4TIME="105219" CONTFLAG="A" PROZPUFF="000" EXCLASS="1">
-  <dd09l TABNAME="ZBI_INACTIVE_OBJ" AS4LOCAL="A" AS4VERS="0000" TABKAT="3" TABART="APPL0" SCHFELDANZ="000" AS4USER="EXC060" AS4DATE="20131114" AS4TIME="105219" BUFALLOW="N"/>
-  <dd03p TABNAME="ZBI_INACTIVE_OBJ" FIELDNAME="DATE_EXEC" DDLANGUAGE="E" POSITION="0001" KEYFLAG="X" ROLLNAME="DATS" ADMINFIELD="0" INTTYPE="D" INTLEN="000016" NOTNULL="X" DOMNAME="DATS" ROUTPUTLEN="000000" HEADLEN="30" SCRLEN1="10" SCRLEN2="10" SCRLEN3="40" DTELMASTER="D" DATATYPE="DATS" LENG="000008" OUTPUTLEN="000010" DECIMALS="000000" MASK="  DATSE" MASKLEN="0000" DDTEXT="Field of type DATS" REPTEXT="Date in Format YYYYMMDD" SCRTEXT_S="Date" SCRTEXT_M="Date" SCRTEXT_L="Date in Format YYYYMMSS in 8 Characters" DOMMASTER="D" DOMNAME3L="DATS" SHLPORIGIN="T" DEPTH="00" COMPTYPE="E" EXCLASS="0" DBPOSITION="0000" OUTPUTSTYLE="00" STRORLOCPOS="00"/>
-  <dd03p TABNAME="ZBI_INACTIVE_OBJ" FIELDNAME="TIME_EXEC" DDLANGUAGE="E" POSITION="0002" KEYFLAG="X" ROLLNAME="UTIME" ADMINFIELD="0" INTTYPE="T" INTLEN="000012" NOTNULL="X" DOMNAME="UZEIT" ROUTPUTLEN="000000" HEADLEN="00" SCRLEN1="00" SCRLEN2="11" SCRLEN3="20" DTELMASTER="D" DATATYPE="TIMS" LENG="000006" OUTPUTLEN="000008" DECIMALS="000000" MASK="  TIMSE" MASKLEN="0000" DDTEXT="Time of Last Change" SCRTEXT_M="Changed at" SCRTEXT_L="Changed at" DOMNAME3L="UZEIT" SHLPORIGIN="T" DEPTH="00" COMPTYPE="E" EXCLASS="0" DBPOSITION="0000" OUTPUTSTYLE="00" STRORLOCPOS="00"/>
-  <dd03p TABNAME="ZBI_INACTIVE_OBJ" FIELDNAME="TYPE" DDLANGUAGE="E" POSITION="0003" KEYFLAG="X" ROLLNAME="TROBJTYPE" ADMINFIELD="0" INTTYPE="C" INTLEN="000008" NOTNULL="X" DOMNAME="OBJECT" ROUTPUTLEN="000000" HEADLEN="04" SCRLEN1="10" SCRLEN2="15" SCRLEN3="20" DTELMASTER="D" DATATYPE="CHAR" LENG="000004" OUTPUTLEN="000004" DECIMALS="000000" MASK="  CHARE" MASKLEN="0000" DDTEXT="Object Type" REPTEXT="Obj." SCRTEXT_S="Obj. Type" SCRTEXT_M="Object Type" SCRTEXT_L="Object Type" DOMNAME3L="OBJECT" SHLPORIGIN="D" SHLPNAME="SCTSOBJECT" SHLPFIELD="OBJECT" DEPTH="00" COMPTYPE="E" EXCLASS="0" DBPOSITION="0000" OUTPUTSTYLE="00" STRORLOCPOS="00"/>
-  <dd03p TABNAME="ZBI_INACTIVE_OBJ" FIELDNAME="ID" DDLANGUAGE="E" POSITION="0004" KEYFLAG="X" ROLLNAME="RSDAS_VALUE" ADMINFIELD="0" INTTYPE="C" INTLEN="000120" NOTNULL="X" DOMNAME="RSDAS_VALUE" ROUTPUTLEN="000000" HEADLEN="15" SCRLEN1="10" SCRLEN2="15" SCRLEN3="15" DTELMASTER="D" DATATYPE="CHAR" LENG="000060" OUTPUTLEN="000060" DECIMALS="000000" LOWERCASE="X" MASK="  CHARE" MASKLEN="0000" DDTEXT="Parameter Value" REPTEXT="Parameter Value" SCRTEXT_S="Value" SCRTEXT_M="Parameter Value" SCRTEXT_L="Parameter Value" DOMNAME3L="RSDAS_VALUE" DEPTH="00" COMPTYPE="E" EXCLASS="0" DBPOSITION="0000" OUTPUTSTYLE="00" STRORLOCPOS="00"/>
-  <dd03p TABNAME="ZBI_INACTIVE_OBJ" FIELDNAME="DESCRIPTION" DDLANGUAGE="E" POSITION="0005" ROLLNAME="RSTXT255" ADMINFIELD="0" INTTYPE="C" INTLEN="000510" DOMNAME="TEXT255" ROUTPUTLEN="000000" HEADLEN="55" SCRLEN1="10" SCRLEN2="15" SCRLEN3="20" DTELMASTER="E" DATATYPE="CHAR" LENG="000255" OUTPUTLEN="000255" DECIMALS="000000" LOWERCASE="X" MASK="  CHARE" MASKLEN="0000" DDTEXT="Descriptive Text, 255 Characters long" REPTEXT="Description" SCRTEXT_S="Text" SCRTEXT_M="Description" SCRTEXT_L="Description" DOMNAME3L="TEXT255" DEPTH="00" COMPTYPE="E" EXCLASS="0" DBPOSITION="0000" OUTPUTSTYLE="00" STRORLOCPOS="00"/>
- </TABL>
- <TTYP TYPENAME="ZBI_INACTIVE_OBJ_T" DDLANGUAGE="E" ROWTYPE="ZBI_INACTIVE_OBJ" ROWKIND="S" DATATYPE="STRU" LENG="000000" DECIMALS="000000" ACCESSMODE="T" KEYDEF="D" KEYKIND="N" KEYFDCOUNT="0000" AS4USER="EXC060" AS4DATE="20131114" AS4TIME="111256" DDTEXT="ZBI_INACTIVE_OBJ_T" TYPELEN="000666" CTLENG="000000" CTDECIMALS="000000" OCCURS="00000"/>
 </nugget>
