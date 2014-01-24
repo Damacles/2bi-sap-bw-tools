@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-16"?>
+<PROG NAME="ZBC_CHECK_SYSTEM_TABLES" VARCL="X" SUBC="1" CNAM="EXC060" CDAT="20130508" UNAM="EXC060" UDAT="20130508" VERN="000002" RMAND="001" RLOAD="E" FIXPT="X" SDATE="20130508" STIME="162504" IDATE="20130508" ITIME="162504" UCCHECK="X">
+ <textPool>
+  <language SPRAS="E">
+   <textElement ID="R" ENTRY="ZBC_CHECK_SYSTEM_TABLES" LENGTH="23 "/>
+  </language>
+ </textPool>
+ <source>*&amp;---------------------------------------------------------------------*
+*&amp; Report  ZBC_CHECK_SYSTEM_TABLES
+*&amp;
+*&amp;---------------------------------------------------------------------*
+*&amp;
+*&amp;
+*&amp;---------------------------------------------------------------------*
+
+REPORT  ZBC_CHECK_SYSTEM_TABLES.
+
+TABLES : DD02L.
+
+SELECT-OPTIONS : S_TABLES FOR DD02L-TABNAME.
+
+DATA : GT_TABROWS LIKE STANDARD TABLE OF DDCDIM,
+       WA_TABROWS LIKE DDCDIM.
+
+SELECT TABNAME
+  FROM DD02L
+  INTO CORRESPONDING FIELDS OF TABLE GT_TABROWS
+  WHERE TABNAME IN S_TABLES.
+
+CALL FUNCTION &apos;EM_GET_NUMBER_OF_ENTRIES&apos;
+  TABLES
+    IT_TABLES = GT_TABROWS.
+
+LOOP AT GT_TABROWS INTO WA_TABROWS.
+  WRITE : / WA_TABROWS-TABNAME , WA_TABROWS-TABROWS.
+ENDLOOP.</source>
+</PROG>
